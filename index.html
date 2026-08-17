@@ -306,6 +306,7 @@ function itemStatus(id){
     if (e.actor === 'user' && e.kind === 'skip') st = 'skipped';
     if (e.actor === 'user' && e.kind === 'unskip') st = null;
     if (e.actor === 'ai' && e.kind === 'revision') st = 'revised';
+    if (e.actor === 'ai' && e.kind === 'chat' && st === 'revising') st = null;
     if (e.actor === 'ai' && e.kind === 'status') st = e.status;
   }
   return st;
