@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listing Review</title>
+<style>
+:root{
+  --bg:#F4F5F7; --ink:#1B1E22; --mut:#5B636D; --card:#FFFFFF; --line:#DDE1E6;
+  --accent:#2F6B8F; --ok:#1E7B45; --warn:#9A6700; --bad:#B3261E;
+  --chip-ok:#E3F2E9; --chip-warn:#FBF0DA; --chip-bad:#FBE3E1; --mono-bg:#F0F2F4;
+  --az-ink:#0F1111; --az-link:#007185; --az-price:#B12704; --az-line:#E7E7E7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#16181B; --ink:#E6E8EB; --mut:#9AA3AD; --card:#1F2226;
+    --line:#33383E; --accent:#6FA8CC; --ok:#57B380; --warn:#D9A03F; --bad:#E58B84;
+    --chip-ok:#20372B; --chip-warn:#3A3021; --chip-bad:#3D2523; --mono-bg:#26292E;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14.5px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);
+  background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+h1{font-size:16.5px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--mut);font-size:12.5px}
+.spacer{flex:1}
+.count{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--mono-bg);color:var(--mut)}
+.count.ok{background:var(--chip-ok);color:var(--ok)}
+.count.warn{background:var(--chip-warn);color:var(--warn)}
+button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 13px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.approve{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
+button.golive{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
+button.ghost{background:transparent}
+button:disabled{opacity:.5;cursor:default}
+.layout{display:flex;flex:1;min-height:0}
+nav{width:295px;min-width:295px;overflow-y:auto;border-right:1px solid var(--line);background:var(--card);padding:8px 0 30px}
+.navgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 5px}
+.navitem{display:flex;gap:9px;align-items:center;padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
+.navitem:hover{background:var(--mono-bg)}
+.navitem.sel{border-left-color:var(--accent);background:var(--mono-bg)}
+.navitem .dot{width:9px;height:9px;border-radius:99px;background:var(--line);flex:none}
+.navitem.st-revising .dot,.navitem.st-launching .dot,.navitem.st-validating .dot{background:var(--warn);animation:pulse 1.2s infinite}
+.navitem.st-revised .dot{background:var(--warn)}
+.navitem.st-needs_info .dot{background:var(--bad)}
+.navitem.st-ready .dot{background:var(--accent)}
+.navitem.st-live .dot{background:var(--ok)}
+.navitem.st-skipped{opacity:.5}
+.navitem.st-skipped .dot{background:var(--mut)}
+@keyframes pulse{50%{opacity:.35}}
+.navitem .nm{font-size:13px;line-height:1.3;flex:1}
+.navitem .pr{font-size:11.5px;color:var(--mut)}
+main{flex:1;overflow-y:auto;padding:20px 22px 80px}
+.wrap{max-width:1120px;margin:0 auto}
+.flags{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.flag{font-size:12px;font-weight:600;padding:4px 11px;border-radius:99px}
+.flag.warn{background:var(--chip-warn);color:var(--warn)}
+.flag.bad{background:var(--chip-bad);color:var(--bad)}
+.flag.ok{background:var(--chip-ok);color:var(--ok)}
+.flag.info{background:var(--mono-bg);color:var(--mut)}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:16px}
+.meta>div{background:var(--card);padding:8px 12px}
+.meta .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.meta .v{font-size:13.5px;margin-top:1px;word-break:break-all}
+.meta a{color:var(--accent);text-decoration:none}
+.mock{background:#fff;color:var(--az-ink);border:1px solid var(--line);border-radius:10px;
+  padding:24px 24px 28px;font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;margin-bottom:16px}
+.mock.flash{animation:flash 1.2s}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--warn)}100%{box-shadow:none}}
+.mock-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);
+  margin:0 0 14px;font-family:system-ui,sans-serif;font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(240px,330px) minmax(300px,1fr) 225px;gap:24px}
+@media(max-width:980px){.cols{grid-template-columns:1fr}}
+.gallery{display:flex;gap:10px;align-items:flex-start}
+.thumbcol{display:flex;flex-direction:column;gap:8px}
+.thumb{width:46px;height:46px;padding:2px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer}
+.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb.sel{border:2px solid var(--az-link);box-shadow:0 0 0 2px #C8E4EC}
+.mainimg{flex:1;border:1px solid var(--az-line);border-radius:6px;background:#fff;
+  display:flex;align-items:center;justify-content:center;min-height:300px}
+.mainimg img{max-width:100%;max-height:420px;display:block}
+.noimg{color:#999;font-size:13px;text-align:center;padding:40px 20px}
+.ttl{font-size:19px;line-height:1.35;margin:0 0 2px;font-weight:400}
+.byline{color:var(--az-link);font-size:13px;margin:2px 0 6px}
+.stars{color:#c9c9c9;font-size:13px;letter-spacing:1px}
+.stars span{color:var(--az-link);margin-left:6px;letter-spacing:0}
+.rule{border:0;border-top:1px solid var(--az-line);margin:12px 0}
+.hlx{font-size:13px;color:#565959;margin:6px 0 0;font-style:italic}
+.varlab{font-size:13px;margin:12px 0 4px}
+.chiprow{display:flex;gap:7px;flex-wrap:wrap}
+.vchip{font-size:12px;border:1px solid #adb1b8;border-radius:6px;padding:5px 10px;cursor:pointer;background:#fff;color:var(--az-ink)}
+.vchip.sel{border:2px solid var(--az-link);padding:4px 9px;background:#EDFDFF}
+.abt{font-size:14px;font-weight:700;margin:14px 0 0}
+.mock ul{margin:8px 0 0;padding-left:18px}
+.mock li{font-size:13.5px;line-height:1.45;margin-bottom:7px}
+.buybox{border:1px solid var(--az-line);border-radius:8px;padding:16px;height:fit-content}
+.price{font-size:25px;color:var(--az-price)}
+.price sup{font-size:13px}
+.bb-line{font-size:12.5px;color:#565959;margin-top:6px}
+.bb-btn{display:block;width:100%;text-align:center;border-radius:99px;padding:7px 0;font-size:13px;margin-top:10px;border:none;cursor:default}
+.bb-cart{background:#FFD814}
+.bb-buy{background:#FFA41C}
+.desc-h{font-size:15px;font-weight:700;margin:18px 0 6px;border-top:1px solid var(--az-line);padding-top:16px}
+.desc{font-size:13.5px;line-height:1.55;max-width:900px;white-space:pre-line}
+.panelrow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.panelrow{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+.panel h3{margin:0 0 9px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.kwbox{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--mono-bg);
+  border-radius:7px;padding:9px 11px;word-break:break-word}
+.factrow{display:flex;gap:10px;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.factrow:last-child{border-bottom:none}
+.factrow .fk{color:var(--mut);min-width:110px;flex:none;text-transform:capitalize}
+textarea,input[type=text],input[type=email]{width:100%;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--ink);padding:8px 10px}
+textarea{min-height:70px;resize:vertical}
+.decide{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.notepill{font-size:12px;color:var(--warn);margin-top:8px}
+.thread{display:flex;flex-direction:column;gap:8px;margin:10px 0;max-height:340px;overflow-y:auto}
+.msg{max-width:82%;padding:8px 12px;border-radius:11px;font-size:13px;line-height:1.45;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:var(--mono-bg);border-bottom-left-radius:4px}
+.msg.sys{align-self:center;background:none;color:var(--mut);font-size:12px;padding:2px}
+.msg .who{font-size:10.5px;opacity:.75;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+.chatrow{display:flex;gap:8px;margin-top:8px}
+.chatrow input{flex:1}
+.statuschip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:4px 12px;border-radius:99px;background:var(--mono-bg);color:var(--mut)}
+.statuschip.revising,.statuschip.launching,.statuschip.validating{background:var(--chip-warn);color:var(--warn)}
+.statuschip.needs_info{background:var(--chip-bad);color:var(--bad)}
+.statuschip.ready{background:#E3EDF4;color:var(--accent)}
+.statuschip.live,.statuschip.revised{background:var(--chip-ok);color:var(--ok)}
+.statuschip.skipped{background:var(--mono-bg);color:var(--mut)}
+.spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
+/* login + campaigns */
+.center{margin:auto;max-width:420px;width:100%;padding:20px}
+.logincard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
+.logincard h2{margin:0 0 6px;font-size:20px}
+.logincard p{color:var(--mut);font-size:13.5px;margin:0 0 18px}
+.campcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:18px 22px;margin-bottom:14px;cursor:pointer}
+.campcard:hover{border-color:var(--accent)}
+.cname{font-size:16.5px;font-weight:700}
+.cdesc{color:var(--mut);font-size:13px;margin-top:3px}
+.homelink{font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:none;cursor:pointer}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="login" class="center hidden">
+  <div class="logincard">
+    <h2>Listing Review</h2>
+    <p>Bicycle Addiction — sign in with your work email. You'll get a magic link, no password.</p>
+    <input type="email" id="email" placeholder="you@example.com">
+    <div class="decide">
+      <button class="primary" id="btn-login">Send magic link</button>
+      <span class="sub" id="login-msg"></span>
+    </div>
+  </div>
+</div>
+
+<div id="picker" class="center hidden">
+  <h2 style="margin:0 0 4px">Campaigns</h2>
+  <p class="sub" style="margin:0 0 18px">Pick a review. <span id="whoami"></span> · <button class="homelink" id="btn-logout">Sign out</button></p>
+  <div id="camplist"></div>
+</div>
+
+<div id="console" class="hidden" style="display:flex;flex-direction:column;height:100%">
+<header>
+  <button class="homelink" id="btn-home">⌂ Campaigns</button>
+  <div>
+    <h1 id="hdr-title">Listing Review</h1>
+    <div class="sub" id="hdr-sub"></div>
+  </div>
+  <div class="spacer"></div>
+  <span class="count" id="c-total"></span>
+  <span class="count warn" id="c-rev"></span>
+  <span class="count ok" id="c-live"></span>
+  <span id="conn" class="sub"></span>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://kebzvmkumimhfixrkico.supabase.co';
+const ANON_KEY = 'sb_publishable_hQniHzhNGLq07p6lULOOuA_bk1v-5fe';
+const sb = createClient(SUPABASE_URL, ANON_KEY);
+
+const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = v => v == null ? '—' : '$' + Number(v).toFixed(2);
+const show = id => {
+  for (const p of ['login','picker','console']) document.getElementById(p).classList.add('hidden');
+  document.getElementById(id).classList.remove('hidden');
+};
+
+let session = null, email = null;
+let campaigns = [], camp = null, DATA = [], events = [];
+let cur = 0, imgSel = 0, childSel = 0, channel = null;
+
+// ---------- auth ----------
+document.getElementById('btn-login').onclick = async () => {
+  const em = document.getElementById('email').value.trim();
+  if (!em) return;
+  const { error } = await sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: location.href.split('#')[0] } });
+  document.getElementById('login-msg').textContent = error ? error.message : 'Check your email for the link ✉';
+};
+document.getElementById('btn-logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+document.getElementById('btn-home').onclick = () => { if (channel) sb.removeChannel(channel); showPicker(); };
+
+sb.auth.onAuthStateChange((_e, s) => {
+  session = s; email = s?.user?.email?.toLowerCase() ?? null;
+  if (!s) show('login'); else boot();
+});
+
+let booted = false;
+async function boot(){
+  if (booted) return; booted = true;
+  const { data, error } = await sb.from('review_campaigns').select('key,title,sub,brand,group_field,updated_at');
+  if (error || !data?.length) {
+    show('picker');
+    document.getElementById('camplist').innerHTML =
+      `<div class="campcard"><div class="cname">No access</div><div class="cdesc">${esc(error?.message || 'Your email is not on the reviewer list. Ask the admin to add you.')}</div></div>`;
+    document.getElementById('whoami').textContent = email ?? '';
+    return;
+  }
+  campaigns = data;
+  showPicker();
+}
+function showPicker(){
+  show('picker');
+  document.getElementById('whoami').textContent = email ?? '';
+  document.getElementById('camplist').innerHTML = campaigns.map(c =>
+    `<div class="campcard" data-k="${esc(c.key)}"><div class="cname">${esc(c.title)}</div><div class="cdesc">${esc(c.sub||'')}</div></div>`).join('');
+  document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
+}
+
+// ---------- campaign console ----------
+async function openCampaign(key){
+  camp = campaigns.find(c => c.key === key);
+  const [{ data: full }, { data: evs }] = await Promise.all([
+    sb.from('review_campaigns').select('data').eq('key', key).single(),
+    sb.from('review_events').select('*').eq('campaign', key).order('ts'),
+  ]);
+  DATA = full.data; events = evs ?? [];
+  applyPatches();
+  cur = 0; imgSel = 0; childSel = 0;
+  document.getElementById('hdr-title').textContent = camp.title;
+  document.getElementById('hdr-sub').textContent = (camp.sub || '') + ' · live console';
+  show('console');
+  render();
+  channel = sb.channel('ev-' + key)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'review_events', filter: 'campaign=eq.' + key },
+      payload => { events.push(payload.new); applyOne(payload.new); render(); flashIf(payload.new); })
+    .subscribe(st => {
+      const el = document.getElementById('conn');
+      el.textContent = st === 'SUBSCRIBED' ? '● live' : st.toLowerCase();
+      el.style.color = st === 'SUBSCRIBED' ? 'var(--ok)' : 'var(--mut)';
+    });
+}
+function applyOne(ev){
+  if (ev.kind === 'revision' && ev.patch){
+    const d = DATA.find(x => x.id === ev.item_id);
+    if (!d) return;
+    const p = ev.patch;
+    if (p.title !== undefined) d.title = p.title;
+    if (p.highlights !== undefined) d.highlights = p.highlights;
+    if (p.description !== undefined) d.description = p.description;
+    if (p.price !== undefined) d.price = p.price;
+    if (p.keywords !== undefined && typeof p.keywords === 'string') d.keywords = [{kind:'backend_search_terms', content: p.keywords}];
+    if (Array.isArray(p.bullets)){
+      const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
+      p.bullets.forEach((t,i) => { if (typeof t === 'string' && tops[i]) tops[i].content = t; });
+    }
+    if (Array.isArray(p.images)) d.images = p.images;
+  }
+  if (ev.kind === 'upload' && ev.path){
+    const d = DATA.find(x => x.id === ev.item_id);
+    if (d && !d.images.includes(ev.path)) d.images.push(ev.path);
+  }
+}
+function applyPatches(){ for (const ev of events) applyOne(ev); }
+function flashIf(ev){
+  if (ev.item_id === DATA[cur]?.id && (ev.kind === 'revision' || ev.kind === 'upload')){
+    const m = document.querySelector('.mock');
+    if (m){ m.classList.remove('flash'); void m.offsetWidth; m.classList.add('flash'); }
+  }
+}
+
+function itemEvents(id){ return events.filter(e => e.item_id === id); }
+function itemStatus(id){
+  let st = null;
+  for (const e of itemEvents(id)){
+    if (e.actor === 'user' && e.kind === 'revise') st = 'revising';
+    if (e.actor === 'user' && e.kind === 'approve') st = 'validating';
+    if (e.actor === 'user' && e.kind === 'skip') st = 'skipped';
+    if (e.actor === 'user' && e.kind === 'unskip') st = null;
+    if (e.actor === 'ai' && e.kind === 'revision') st = 'revised';
+    if (e.actor === 'ai' && e.kind === 'status') st = e.status;
+  }
+  return st;
+}
+const ST_LABEL = {revising:'AI is revising…', revised:'Revised — re-review below', launching:'Launch queued…',
+  validating:'Validating with Amazon…', needs_info:'Needs attention — see thread', ready:'Ready to launch',
+  live:'LIVE on Amazon', skipped:'Skipped — parked for later'};
+
+function grouped(){
+  const gf = camp.group_field || 'group';
+  const m = new Map();
+  DATA.forEach((d,i) => { const k = d[gf] || 'Other'; if (!m.has(k)) m.set(k, []); m.get(k).push([d,i]); });
+  return [...m.entries()];
+}
+function renderNav(){
+  const el = document.getElementById('nav');
+  el.innerHTML = grouped().map(([label, items]) =>
+    `<div class="navgroup">${esc(label)}</div>` + items.map(([d,i]) => {
+      const st = itemStatus(d.id);
+      return `<div class="navitem ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}">
+        <span class="dot"></span><span class="nm">${esc(d.short_title)}</span>
+        <span class="pr">${money(d.price ?? d.msrp)}</span></div>`;
+    }).join('')).join('');
+  el.querySelectorAll('.navitem').forEach(n => n.onclick = () => go(+n.dataset.i));
+  const sts = DATA.map(d => itemStatus(d.id));
+  document.getElementById('c-total').textContent = `${DATA.length} items`;
+  document.getElementById('c-rev').textContent = `${sts.filter(s=>s==='revising'||s==='revised').length} in revision · ${sts.filter(s=>s==='skipped').length} skipped`;
+  document.getElementById('c-live').textContent = `${sts.filter(s=>s==='live').length} live`;
+}
+function flagsFor(d){
+  const f = [];
+  if (d.map_missing) f.push(['warn','MAP missing — MSRP used as List Price, needs confirmation']);
+  if (/lithium|battery/i.test(d.notes||'')) f.push(['bad','Li-ion battery — Dangerous Goods fields must NOT default to N/A']);
+  if (!(d.images||[]).length) f.push(['bad','No product imagery — Amazon requires a main image']);
+  if (d.amazon_status === 'live' && d.asin) f.push(['ok','Live on Amazon · ' + d.asin]);
+  else f.push(['info','Not yet on Amazon']);
+  if (d.is_family) f.push(['info','Variant family']);
+  return f;
+}
+function currentChild(d){
+  const kids = d.families?.[0]?.children || [];
+  return kids.length ? kids[Math.min(childSel, kids.length-1)] : null;
+}
+function imagesFor(d){
+  const kid = currentChild(d);
+  const kimgs = kid?.attrs?.images || [];
+  return kimgs.length ? kimgs : (d.images || []);
+}
+function bulletsFor(d){
+  const shared = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
+  const kid = currentChild(d);
+  if (!kid) return shared.map(b=>b.content);
+  const kidBul = (d.bullets||[]).filter(b => b.child_id && b.child_id === kid.id);
+  return [...kidBul.map(b=>b.content), ...shared.filter(b=>b.scope==='parent_shared').map(b=>b.content)];
+}
+function threadHTML(d){
+  const evs = itemEvents(d.id).filter(e =>
+    (e.actor==='user' && ['chat','approve','revise','upload','skip','unskip','confirm_live'].includes(e.kind)) ||
+    (e.actor==='ai' && (e.kind==='chat' || e.kind==='status')));
+  if (!evs.length) return '<div class="sub">No activity yet.</div>';
+  return '<div class="thread">' + evs.map(e => {
+    if (e.actor==='user'){
+      const who = e.actor_email ? e.actor_email.split('@')[0] : 'You';
+      if (e.kind==='skip') return `<div class="msg sys">— ⏸ Skipped by ${esc(who)}${e.text?': '+esc(e.text):''} —</div>`;
+      if (e.kind==='unskip') return `<div class="msg sys">— ▶ Resumed by ${esc(who)} —</div>`;
+      if (e.kind==='upload') return `<div class="msg user"><div class="who">${esc(who)}</div>📷 Uploaded a photo</div>`;
+      if (e.kind==='confirm_live') return `<div class="msg sys">— 🚀 Live push confirmed by ${esc(who)} —</div>`;
+      const label = e.kind==='approve' ? '✔ Approved for launch' + (e.text?': ':'') : e.kind==='revise' ? '✎ Change request: ' : '';
+      return `<div class="msg user"><div class="who">${esc(who)}</div>${esc(label)}${esc(e.text||'')}</div>`;
+    }
+    if (e.kind==='status' && !e.text) return `<div class="msg sys">— ${esc(ST_LABEL[e.status]||e.status)} —</div>`;
+    return `<div class="msg ai"><div class="who">AI</div>${esc(e.text||'')}</div>`;
+  }).join('') + '</div>';
+}
+
+function render(){
+  const d = DATA[cur];
+  if (!d) return;
+  const kids = d.families?.[0]?.children || [];
+  const kid = currentChild(d);
+  const imgs = imagesFor(d);
+  imgSel = Math.min(imgSel, Math.max(0, imgs.length-1));
+  const theme = d.families?.[0]?.theme || '';
+  const price = d.price ?? kid?.attrs?.msrp ?? d.msrp;
+  const st = itemStatus(d.id);
+  const busy = ['revising','launching','validating'].includes(st);
+  const noteVal = document.getElementById('note')?.value ?? '';
+  const chatVal = document.getElementById('chat')?.value ?? '';
+  const mMpn = kid?.mpn || d.mpn, mUpc = kid?.upc || d.upc, mAsin = kid?.asin || d.asin;
+
+  document.getElementById('view').innerHTML = `
+  <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}
+    ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}</div>
+  <div class="meta">
+    <div><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
+    <div><div class="k">UPC / mSKU</div><div class="v">${esc(mUpc)}</div></div>
+    <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
+    <div><div class="k">MSRP</div><div class="v">${money(d.msrp)}</div></div>
+    <div><div class="k">Dealer cost</div><div class="v">${money(d.dealer_cost)}</div></div>
+    <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
+    <div style="grid-column:span 2"><div class="k">Browse node</div><div class="v">${esc(d.browse_node||'—')}</div></div>
+  </div>
+
+  <div class="mock">
+    <p class="mock-tag">Amazon detail page preview — generated copy${st==='revised'?' — REVISED':''}</p>
+    <div class="cols">
+      <div class="gallery">
+        <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>`).join('')}</div>
+        <div class="mainimg">${imgs.length?`<img src="${esc(imgs[imgSel])}" alt="">`:`<div class="noimg">No imagery yet<br>— needs photos before launch —<br><br>
+          <label class="uplbtn">📷 Upload photos<input type="file" accept="image/*" multiple hidden id="upl"></label>
+          <div class="sub" id="upl-status"></div></div>`}</div>
+      </div>
+      <div>
+        <h2 class="ttl">${esc(d.title || d.short_title)}</h2>
+        <div class="byline">Visit the ${esc(camp.brand||'')} Store</div>
+        <div class="stars">★★★★★<span>New — no reviews yet</span></div>
+        ${d.highlights?`<p class="hlx">${esc(d.highlights)}</p>`:''}
+        <hr class="rule">
+        ${kids.length?`
+          <div class="varlab">${esc(theme && theme.toLowerCase()==='size'?'Size':theme)}: <b>${esc(kid?.size || kid?.color || kid?.sku)}</b></div>
+          <div class="chiprow">${kids.map((k,i)=>`<span class="vchip ${i===childSel?'sel':''}" data-i="${i}">${esc(k.size||k.color||k.sku)}</span>`).join('')}</div>
+          <hr class="rule">`:''}
+        <div class="abt">About this item</div>
+        <ul>${bulletsFor(d).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+      </div>
+      <div class="buybox">
+        <div class="price"><sup>$</sup>${price!=null?Number(price).toFixed(2):'—'}</div>
+        <div class="bb-line">${d.price?`Live offer price (MSRP ${money(d.msrp)})`:`List Price — MSRP${d.map_missing?' (MAP missing)':''}`}</div>
+        <div class="bb-line">FREE Returns</div>
+        <div class="bb-line" style="color:#1E7B45">In Stock</div>
+        <button class="bb-btn bb-cart">Add to Cart</button>
+        <button class="bb-btn bb-buy">Buy Now</button>
+        <div class="bb-line">Ships from &amp; sold by Bicycle Addiction</div>
+      </div>
+    </div>
+    <div class="desc-h">Product Description</div>
+    <div class="desc">${esc(d.description||'—')}</div>
+  </div>
+
+  <div class="panelrow">
+    <div class="panel">
+      <h3>Backend search terms</h3>
+      ${(d.keywords||[]).map(k=>`<div class="kwbox">${esc(k.content)}</div>`).join('') || '<div class="sub">none</div>'}
+      ${d.notes?`<div class="notepill">⚑ ${esc(d.notes)}</div>`:''}
+    </div>
+    <div class="panel">
+      <h3>Source facts (${(d.facts||[]).length})</h3>
+      ${(d.facts||[]).map(f=>`<div class="factrow"><span class="fk">${esc((f.k||'').replace(/_/g,' '))}</span><span>${esc(f.v)}</span></div>`).join('') || '<div class="sub">none</div>'}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Review &amp; launch</h3>
+    ${threadHTML(d)}
+    <textarea id="note" placeholder="Change request (AI revises the listing live) — or notes with your approval">${esc(noteVal)}</textarea>
+    <div class="decide">
+      <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
+      ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
+      <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
+      ${st==='skipped'
+        ? '<button id="btn-skip">▶ Resume</button>'
+        : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip for now</button>`}
+    </div>
+    <div class="chatrow">
+      <input type="text" id="chat" placeholder="Chat with the AI about this item…" value="${esc(chatVal)}">
+      <button class="primary" id="btn-chat">Send</button>
+    </div>
+    <div class="decide">
+      <button id="btn-prev">← Previous</button>
+      <button id="btn-next">Next item →</button>
+    </div>
+  </div>`;
+
+  document.querySelectorAll('.thumb').forEach(t => t.onclick = () => { imgSel = +t.dataset.i; render(); });
+  document.querySelectorAll('.vchip').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; render(); });
+  bind('btn-approve', doApprove);
+  bind('btn-live', doLive);
+  bind('btn-changes', doRevise);
+  bind('btn-skip', doSkip);
+  bind('btn-chat', doChat);
+  bind('btn-prev', () => go(cur-1));
+  bind('btn-next', () => go(cur+1));
+  const chat = document.getElementById('chat');
+  if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
+  const upl = document.getElementById('upl');
+  if (upl) upl.onchange = () => doUpload(upl.files);
+  renderNav();
+}
+function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
+function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; render();
+  document.querySelector('#console main').scrollTop = 0; }
+
+// ---------- actions ----------
+async function insertEvent(kind, extra = {}){
+  const row = { campaign: camp.key, item_id: DATA[cur].id, kind, actor: 'user', actor_email: email, ...extra };
+  const { data, error } = await sb.from('review_events').insert(row).select('id').single();
+  if (error) { alert('Could not save: ' + error.message); return null; }
+  events.push({ ...row, id: data.id, actor: 'user', ts: new Date().toISOString() });
+  render();
+  return data.id;
+}
+async function callFn(name, body){
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token, 'apikey': ANON_KEY },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok && res.status !== 500) console.warn(name, res.status, await res.text());
+}
+async function doRevise(){
+  const note = document.getElementById('note').value.trim();
+  if (!note){ document.getElementById('note').focus(); return; }
+  document.getElementById('note').value = '';
+  const id = await insertEvent('revise', { text: note });
+  if (id) callFn('review-ai', { event_id: id });
+}
+async function doChat(){
+  const el = document.getElementById('chat');
+  const t = el.value.trim();
+  if (!t) return;
+  el.value = '';
+  const id = await insertEvent('chat', { text: t });
+  if (id) callFn('review-ai', { event_id: id });
+}
+async function doApprove(){
+  const note = document.getElementById('note').value.trim();
+  document.getElementById('note').value = '';
+  const id = await insertEvent('approve', { text: note || null });
+  if (id) callFn('review-launch', { action: 'validate', campaign: camp.key, item_id: DATA[cur].id });
+}
+async function doLive(){
+  const d = DATA[cur];
+  if (!confirm(`Push this listing LIVE to Amazon?\n\n${d.title || d.short_title}\nSKU ${d.upc}${d.asin ? ' · ASIN ' + d.asin : ''}\n\nThis updates the real product page.`)) return;
+  const id = await insertEvent('confirm_live');
+  if (id) callFn('review-launch', { action: 'live', confirm: true, campaign: camp.key, item_id: d.id });
+}
+async function doSkip(){
+  const skipped = itemStatus(DATA[cur].id) === 'skipped';
+  const note = document.getElementById('note').value.trim();
+  document.getElementById('note').value = '';
+  await insertEvent(skipped ? 'unskip' : 'skip', { text: note || null });
+  if (!skipped && cur+1 < DATA.length) go(cur+1);
+}
+async function doUpload(files){
+  const d = DATA[cur];
+  const stat = document.getElementById('upl-status');
+  for (const f of files){
+    if (stat) stat.textContent = `uploading ${f.name}…`;
+    const path = `uploads/${d.id}/${Date.now()}_${f.name.replace(/[^A-Za-z0-9._-]/g,'_')}`;
+    const { error } = await sb.storage.from('product-images').upload(path, f);
+    if (error){ if (stat) stat.textContent = 'upload failed: ' + error.message; return; }
+    const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`;
+    await insertEvent('upload', { path: url });
+    if (!d.images.includes(url)) d.images.push(url);
+  }
+  imgSel = 0; render();
+}
+</script>
+</body>
+</html>
