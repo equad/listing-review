@@ -10,12 +10,14 @@
   --accent:#2F6B8F; --ok:#1E7B45; --warn:#9A6700; --bad:#B3261E;
   --chip-ok:#E3F2E9; --chip-warn:#FBF0DA; --chip-bad:#FBE3E1; --mono-bg:#F0F2F4;
   --az-ink:#0F1111; --az-link:#007185; --az-price:#B12704; --az-line:#E7E7E7;
+  --ans:#6B4FAE; --chip-ans:#ECE5F7; --chip-acc:#E3EDF4;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#16181B; --ink:#E6E8EB; --mut:#9AA3AD; --card:#1F2226;
     --line:#33383E; --accent:#6FA8CC; --ok:#57B380; --warn:#D9A03F; --bad:#E58B84;
     --chip-ok:#20372B; --chip-warn:#3A3021; --chip-bad:#3D2523; --mono-bg:#26292E;
+    --ans:#A98FE0; --chip-ans:#332A45; --chip-acc:#23303B;
   }
 }
 *{box-sizing:border-box}
@@ -30,6 +32,7 @@ h1{font-size:16.5px;margin:0;letter-spacing:-.01em}
 .count{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--mono-bg);color:var(--mut)}
 .count.ok{background:var(--chip-ok);color:var(--ok)}
 .count.warn{background:var(--chip-warn);color:var(--warn)}
+.count.acc{background:var(--chip-acc);color:var(--accent)}
 button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 13px}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
@@ -51,6 +54,7 @@ nav{width:295px;min-width:295px;overflow-y:auto;border-right:1px solid var(--lin
 .navitem.st-live .dot{background:var(--ok)}
 .navitem.st-skipped{opacity:.5}
 .navitem.st-skipped .dot{background:var(--mut)}
+.navitem.st-answered .dot{background:var(--ans)}
 @keyframes pulse{50%{opacity:.35}}
 .navitem .nm{font-size:13px;line-height:1.3;flex:1}
 .navitem .pr{font-size:11.5px;color:var(--mut)}
@@ -135,6 +139,9 @@ textarea{min-height:70px;resize:vertical}
 .statuschip.ready{background:#E3EDF4;color:var(--accent)}
 .statuschip.live,.statuschip.revised{background:var(--chip-ok);color:var(--ok)}
 .statuschip.skipped{background:var(--mono-bg);color:var(--mut)}
+.statuschip.answered{background:var(--chip-ans);color:var(--ans)}
+.topbar{position:sticky;top:-20px;z-index:4;background:var(--bg);padding-top:20px;margin-top:-20px;
+  box-shadow:0 8px 10px -10px rgba(0,0,0,.25)}
 .spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
@@ -180,6 +187,7 @@ textarea{min-height:70px;resize:vertical}
   </div>
   <div class="spacer"></div>
   <span class="count" id="c-total"></span>
+  <span class="count acc" id="c-togo"></span>
   <span class="count warn" id="c-rev"></span>
   <span class="count ok" id="c-live"></span>
   <span id="conn" class="sub"></span>
@@ -261,7 +269,8 @@ async function openCampaign(key){
   render();
   channel = sb.channel('ev-' + key)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'review_events', filter: 'campaign=eq.' + key },
-      payload => { events.push(payload.new); applyOne(payload.new); render(); flashIf(payload.new); })
+      payload => { if (events.some(e => e.id === payload.new.id)) return;
+        events.push(payload.new); applyOne(payload.new); render(); flashIf(payload.new); })
     .subscribe(st => {
       const el = document.getElementById('conn');
       el.textContent = st === 'SUBSCRIBED' ? '● live' : st.toLowerCase();
@@ -306,12 +315,13 @@ function itemStatus(id){
     if (e.actor === 'user' && e.kind === 'skip') st = 'skipped';
     if (e.actor === 'user' && e.kind === 'unskip') st = null;
     if (e.actor === 'ai' && e.kind === 'revision') st = 'revised';
-    if (e.actor === 'ai' && e.kind === 'chat' && st === 'revising') st = null;
+    if (e.actor === 'ai' && e.kind === 'chat' && st === 'revising') st = 'answered';
     if (e.actor === 'ai' && e.kind === 'status') st = e.status;
   }
   return st;
 }
 const ST_LABEL = {revising:'AI is revising…', revised:'Revised — re-review below', launching:'Launch queued…',
+  answered:'AI replied — see thread',
   validating:'Validating with Amazon…', needs_info:'Needs attention — see thread', ready:'Ready to launch',
   live:'LIVE on Amazon', skipped:'Skipped — parked for later'};
 
@@ -333,6 +343,8 @@ function renderNav(){
   el.querySelectorAll('.navitem').forEach(n => n.onclick = () => go(+n.dataset.i));
   const sts = DATA.map(d => itemStatus(d.id));
   document.getElementById('c-total').textContent = `${DATA.length} items`;
+  const togo = DATA.length - sts.filter(s=>s==='live').length - sts.filter(s=>s==='skipped').length;
+  document.getElementById('c-togo').textContent = `${togo} to go`;
   document.getElementById('c-rev').textContent = `${sts.filter(s=>s==='revising'||s==='revised').length} in revision · ${sts.filter(s=>s==='skipped').length} skipped`;
   document.getElementById('c-live').textContent = `${sts.filter(s=>s==='live').length} live`;
 }
@@ -398,6 +410,7 @@ function render(){
   const mMpn = kid?.mpn || d.mpn, mUpc = kid?.upc || d.upc, mAsin = kid?.asin || d.asin;
 
   document.getElementById('view').innerHTML = `
+  <div class="topbar">
   <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}
     ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}</div>
   <div class="meta">
@@ -408,6 +421,7 @@ function render(){
     <div><div class="k">Dealer cost</div><div class="v">${money(d.dealer_cost)}</div></div>
     <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
     <div style="grid-column:span 2"><div class="k">Browse node</div><div class="v">${esc(d.browse_node||'—')}</div></div>
+  </div>
   </div>
 
   <div class="mock">
