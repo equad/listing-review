@@ -155,6 +155,7 @@ textarea{min-height:70px;resize:vertical}
 .campcard:hover{border-color:var(--accent)}
 .cname{font-size:16.5px;font-weight:700}
 .cdesc{color:var(--mut);font-size:13px;margin-top:3px}
+.cstat{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
 .homelink{font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:none;cursor:pointer}
 .hidden{display:none !important}
 </style>
@@ -213,7 +214,7 @@ const show = id => {
 };
 
 let session = null, email = null;
-let campaigns = [], camp = null, DATA = [], events = [];
+let campaigns = [], campStats = {}, camp = null, DATA = [], events = [];
 let cur = 0, imgSel = 0, childSel = 0, channel = null;
 
 // ---------- auth ----------
@@ -234,9 +235,13 @@ sb.auth.onAuthStateChange((_e, s) => {
 let booted = false;
 async function boot(){
   if (booted) return; booted = true;
-  const { data, error } = await sb.from('review_campaigns')
-    .select('key,title,sub,brand,group_field,updated_at')
-    .order('sort_order', { ascending: true });
+  const [{ data, error }, statsQ] = await Promise.all([
+    sb.from('review_campaigns')
+      .select('key,title,sub,brand,group_field,updated_at')
+      .order('sort_order', { ascending: true }),
+    sb.from('review_campaign_stats').select('key,total,live,skipped'),
+  ]);
+  campStats = Object.fromEntries((statsQ.data || []).map(s => [s.key, s]));
   if (error || !data?.length) {
     show('picker');
     document.getElementById('camplist').innerHTML =
@@ -250,8 +255,11 @@ async function boot(){
 function showPicker(){
   show('picker');
   document.getElementById('whoami').textContent = email ?? '';
-  document.getElementById('camplist').innerHTML = campaigns.map(c =>
-    `<div class="campcard" data-k="${esc(c.key)}"><div class="cname">${esc(c.title)}</div><div class="cdesc">${esc(c.sub||'')}</div></div>`).join('');
+  document.getElementById('camplist').innerHTML = campaigns.map(c => {
+    const s = campStats[c.key];
+    const stat = s ? `<div class="cstat">${s.total - s.live - s.skipped} left · ${s.live} live${s.skipped > 0 ? ` · ${s.skipped} skipped` : ''}</div>` : '';
+    return `<div class="campcard" data-k="${esc(c.key)}"><div class="cname">${esc(c.title)}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}</div>`;
+  }).join('');
   document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
 }
 
@@ -361,8 +369,17 @@ function flagsFor(d){
   if (d.is_family) f.push(['info','Variant family']);
   return f;
 }
+function kidsFor(d){
+  const kids = (d.families?.[0]?.children || []).slice();
+  const key = k => k.size || k.color || k.sku || '';
+  return kids.sort((a,b) => {
+    const na = parseFloat(key(a)), nb = parseFloat(key(b));
+    if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+    return key(a).localeCompare(key(b), undefined, {numeric:true});
+  });
+}
 function currentChild(d){
-  const kids = d.families?.[0]?.children || [];
+  const kids = kidsFor(d);
   return kids.length ? kids[Math.min(childSel, kids.length-1)] : null;
 }
 function imagesFor(d){
@@ -400,7 +417,7 @@ function threadHTML(d){
 function render(){
   const d = DATA[cur];
   if (!d) return;
-  const kids = d.families?.[0]?.children || [];
+  const kids = kidsFor(d);
   const kid = currentChild(d);
   const imgs = imagesFor(d);
   imgSel = Math.min(imgSel, Math.max(0, imgs.length-1));
