@@ -394,6 +394,7 @@ function kidsFor(d){
   });
 }
 function currentChild(d){
+  if (childSel < 0) return null; // parent view
   const kids = kidsFor(d);
   return kids.length ? kids[Math.min(childSel, kids.length-1)] : null;
 }
@@ -442,7 +443,11 @@ function render(){
   const busy = ['revising','launching','validating'].includes(st);
   const noteVal = document.getElementById('note')?.value ?? '';
   const chatVal = document.getElementById('chat')?.value ?? '';
-  const mMpn = kid?.mpn || d.mpn, mUpc = kid?.upc || d.upc, mAsin = kid?.asin || d.asin;
+  const fam0 = d.families?.[0];
+  const parentView = d.is_family && !kid && fam0;
+  const mMpn = kid?.mpn || d.mpn;
+  const mUpc = kid ? kid.upc : (parentView ? fam0.parent_sku : d.upc);
+  const mAsin = kid ? kid.asin : (parentView ? (fam0.parent_asin || '') : d.asin);
 
   // Thread scroll: pin to bottom on item change or when already near the bottom;
   // otherwise preserve the reading position across re-renders.
@@ -476,14 +481,16 @@ function render(){
           <div class="sub" id="upl-status"></div></div>`}</div>
       </div>
       <div>
-        <h2 class="ttl">${esc(d.title || d.short_title)}</h2>
+        <h2 class="ttl">${esc(kid?.attrs?.child_title || d.title || d.short_title)}</h2>
         <div class="byline">Visit the ${esc(camp.brand||'')} Store</div>
         <div class="stars">★★★★★<span>New — no reviews yet</span></div>
         ${d.highlights?`<p class="hlx">${esc(d.highlights)}</p>`:''}
         <hr class="rule">
         ${kids.length?`
-          <div class="varlab">${esc(theme && theme.toLowerCase()==='size'?'Size':theme)}: <b>${esc(kid?.size || kid?.color || kid?.sku)}</b></div>
-          <div class="chiprow">${kids.map((k,i)=>`<span class="vchip ${i===childSel?'sel':''}" data-i="${i}">${esc(k.size||k.color||k.sku)}</span>`).join('')}</div>
+          <div class="varlab">${kid
+            ? `${esc(theme && theme.toLowerCase()==='size'?'Size':theme)}: <b>${esc(kid.size || kid.color || kid.sku)}</b>`
+            : `<b>Parent listing</b> — shared copy &amp; full gallery`}</div>
+          <div class="chiprow"><span class="vchip ${childSel<0?'sel':''}" data-i="-1">Parent</span>${kids.map((k,i)=>`<span class="vchip ${i===childSel?'sel':''}" data-i="${i}">${esc(k.size||k.color||k.sku)}</span>`).join('')}</div>
           <hr class="rule">`:''}
         <div class="abt">About this item</div>
         <ul>${bulletsFor(d).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
@@ -562,7 +569,8 @@ function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel
 
 // ---------- actions ----------
 async function insertEvent(kind, extra = {}){
-  const row = { campaign: camp.key, item_id: DATA[cur].id, kind, actor: 'user', actor_email: email, ...extra };
+  const row = { campaign: camp.key, item_id: DATA[cur].id, kind, actor: 'user', actor_email: email,
+    child_id: currentChild(DATA[cur])?.id ?? null, ...extra };
   const { data, error } = await sb.from('review_events').insert(row).select('id').single();
   if (error) { alert('Could not save: ' + error.message); return null; }
   events.push({ ...row, id: data.id, actor: 'user', ts: new Date().toISOString() });
