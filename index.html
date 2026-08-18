@@ -162,7 +162,6 @@ textarea{min-height:70px;resize:vertical}
 .cpill.skip{background:var(--mono-bg);color:var(--mut)}
 .cbar{margin-top:8px;height:6px;border-radius:99px;background:var(--mono-bg);overflow:hidden;display:flex}
 .cbar .fill{background:var(--ok);height:100%}
-.cbar .skipfill{background:var(--mut);opacity:.45;height:100%}
 .homelink{font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:none;cursor:pointer}
 .hidden{display:none !important}
 </style>
@@ -272,7 +271,7 @@ function showPicker(){
         <span class="cpill live">${s.live} live</span>
         ${s.skipped > 0 ? `<span class="cpill skip">${s.skipped} skipped</span>` : ''}
       </div>
-      <div class="cbar"><span class="fill" style="width:${(s.live / s.total * 100).toFixed(1)}%"></span><span class="skipfill" style="width:${(s.skipped / s.total * 100).toFixed(1)}%"></span></div>`;
+      <div class="cbar"><span class="fill" style="width:${(s.live / Math.max(1, s.total - s.skipped) * 100).toFixed(1)}%"></span></div>`;
     }
     return `<div class="campcard" data-k="${esc(c.key)}"><div class="cname">${esc(c.title)}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}</div>`;
   }).join('');
