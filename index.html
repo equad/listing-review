@@ -234,7 +234,9 @@ sb.auth.onAuthStateChange((_e, s) => {
 let booted = false;
 async function boot(){
   if (booted) return; booted = true;
-  const { data, error } = await sb.from('review_campaigns').select('key,title,sub,brand,group_field,updated_at');
+  const { data, error } = await sb.from('review_campaigns')
+    .select('key,title,sub,brand,group_field,updated_at')
+    .order('sort_order', { ascending: true });
   if (error || !data?.length) {
     show('picker');
     document.getElementById('camplist').innerHTML =
