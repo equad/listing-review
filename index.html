@@ -353,6 +353,7 @@ function fieldsFor(id, childId){
 const RF = [['brand','Brand'],['manufacturer','Manufacturer'],['model_number','Model #'],
   ['model_name','Model Name'],['number_of_items','# Items'],['material','Material'],
   ['color','Color'],['size','Size'],['included_components','Included Components'],['warranty','Warranty']];
+const RFOPT = [['pkg_length','Box L (in)'],['pkg_width','Box W (in)'],['pkg_height','Box H (in)'],['pkg_weight','Box Wt (lb)']];
 function itemStatus(id){
   let st = null;
   for (const e of itemEvents(id)){
@@ -509,8 +510,10 @@ function render(){
     ${RF.map(([k,lab])=>{ const v = rfVal(k);
       return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'}</div></div>`; }).join('')}
     <div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'}</div></div>
+    ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
+      return `<div><div class="k">${lab}</div><div class="v">${v?esc(v):'—'}</div></div>`; }).join('')}
   </div>
-  <div class="rfhint">Change via chat — e.g. “set color to Black”, “set all variants to Black”, “warranty is 2 years”, “Prop 65 on”.</div>
+  <div class="rfhint">Change via chat — e.g. “set color to Black”, “set all variants to Black”, “warranty is 2 years”, “Prop 65 on”, “box is 8 x 4 x 2 in, 0.6 lb”. Box dims/weight are optional.</div>
   </div>
 
   <div class="mock">
