@@ -411,6 +411,13 @@ function render(){
   const chatVal = document.getElementById('chat')?.value ?? '';
   const mMpn = kid?.mpn || d.mpn, mUpc = kid?.upc || d.upc, mAsin = kid?.asin || d.asin;
 
+  // Thread scroll: pin to bottom on item change or when already near the bottom;
+  // otherwise preserve the reading position across re-renders.
+  const oldTh = document.querySelector('.thread');
+  const stick = !oldTh || oldTh.dataset.item !== d.id ||
+    oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 40;
+  const oldPos = oldTh ? oldTh.scrollTop : 0;
+
   document.getElementById('view').innerHTML = `
   <div class="topbar">
   <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}
@@ -509,6 +516,8 @@ function render(){
   if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
   const upl = document.getElementById('upl');
   if (upl) upl.onchange = () => doUpload(upl.files);
+  const th = document.querySelector('.thread');
+  if (th){ th.dataset.item = d.id; th.scrollTop = stick ? th.scrollHeight : oldPos; }
   renderNav();
 }
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
