@@ -152,6 +152,14 @@ textarea{min-height:70px;resize:vertical}
 .rfgrid>div.missv{background:var(--chip-warn)}
 .rfgrid>div.missv .v{color:var(--warn);font-weight:700}
 .rfhint{font-size:11.5px;color:var(--mut);margin:0 0 8px}
+.rfedit{border:none;background:none;color:var(--mut);cursor:pointer;font-size:11px;padding:0 2px;opacity:.55}
+.rfedit:hover{opacity:1;color:var(--accent);border:none}
+.vedit{display:flex;gap:4px;align-items:center;margin-top:2px}
+.vedit input[type=text]{font-size:12.5px;padding:3px 6px;width:100%;min-width:70px}
+.vedit input[type=checkbox]{width:15px;height:15px;accent-color:var(--warn)}
+.rfok,.rfx{border:1px solid var(--line);background:var(--card);cursor:pointer;border-radius:5px;font-size:12px;padding:2px 7px}
+.rfok{color:var(--ok);border-color:var(--ok)}
+.rfx{color:var(--mut)}
 .spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
@@ -231,7 +239,7 @@ const show = id => {
 
 let session = null, email = null;
 let campaigns = [], campStats = {}, camp = null, DATA = [], events = [];
-let cur = 0, imgSel = 0, childSel = 0, channel = null;
+let cur = 0, imgSel = 0, childSel = 0, channel = null, rfEdit = null;
 
 // ---------- auth ----------
 document.getElementById('btn-login').onclick = async () => {
@@ -511,12 +519,16 @@ function render(){
   </div>
   <div class="rfgrid">
     ${RF.map(([k,lab])=>{ const v = rfVal(k);
-      return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'}</div></div>`; }).join('')}
-    <div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'}</div></div>
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+    ${rfEdit === 'prop65'
+      ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
+      : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
     ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
-      return `<div><div class="k">${lab}</div><div class="v">${v?esc(v):'—'}</div></div>`; }).join('')}
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div><div class="k">${lab}</div><div class="v">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
   </div>
-  <div class="rfhint">Change via chat — e.g. “set color to Black”, “set all variants to Black”, “warranty is 2 years”, “Prop 65 on”, “box is 8 x 4 x 2 in, 0.6 lb”. Box dims/weight are optional.</div>
+  <div class="rfhint">Click ✎ to edit a field directly (✓ saves, Esc cancels) — or ask in chat: “set color to Black”, “set all variants to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
   </div>
 
   <div class="mock">
@@ -593,7 +605,7 @@ function render(){
   </div>`;
 
   document.querySelectorAll('.thumb').forEach(t => t.onclick = () => { imgSel = +t.dataset.i; render(); });
-  document.querySelectorAll('.vchip').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; render(); });
+  document.querySelectorAll('.vchip').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; rfEdit = null; render(); });
   bind('btn-approve', doApprove);
   bind('btn-live', doLive);
   bind('btn-verify', doVerify);
@@ -606,13 +618,35 @@ function render(){
   if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
   const upl = document.getElementById('upl');
   if (upl) upl.onchange = () => doUpload(upl.files);
+  document.querySelectorAll('.rfedit').forEach(b => b.onclick = () => {
+    rfEdit = b.dataset.k; render();
+    const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
+  });
+  const rfOk = document.querySelector('.rfok');
+  if (rfOk) rfOk.onclick = commitRf;
+  const rfX = document.querySelector('.rfx');
+  if (rfX) rfX.onclick = () => { rfEdit = null; render(); };
+  const rfIn = document.getElementById('rf-in');
+  if (rfIn) rfIn.onkeydown = e => {
+    if (e.key === 'Enter') commitRf();
+    if (e.key === 'Escape'){ rfEdit = null; render(); }
+  };
   const th = document.querySelector('.thread');
   if (th){ th.dataset.item = d.id; th.scrollTop = stick ? th.scrollHeight : oldPos; }
   renderNav();
 }
+function commitRf(){
+  if (!rfEdit) return;
+  const k = rfEdit;
+  const val = k === 'prop65'
+    ? (document.getElementById('rf-in-p65')?.checked ?? false)
+    : (document.getElementById('rf-in')?.value ?? '').trim();
+  rfEdit = null;
+  insertEvent('set_field', { patch: { [k]: val } });
+}
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
 function clearDrafts(){ for (const id of ['note','chat']){ const el = document.getElementById(id); if (el) el.value = ''; } }
-function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; clearDrafts(); render();
+function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; clearDrafts(); render();
   document.querySelector('#console main').scrollTop = 0; }
 
 // ---------- actions ----------
