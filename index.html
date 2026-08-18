@@ -590,10 +590,10 @@ function render(){
     ${threadHTML(d)}
     <textarea id="note" placeholder="Change request (AI revises the listing live) — or notes with your approval">${esc(noteVal)}</textarea>
     <div class="decide">
+      <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
       ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
-      <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
       ${st==='skipped'
         ? '<button id="btn-skip">▶ Resume</button>'
         : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip for now</button>`}
