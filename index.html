@@ -144,10 +144,12 @@ textarea{min-height:70px;resize:vertical}
 .statuschip.answered{background:var(--chip-ans);color:var(--ans)}
 .topbar{position:sticky;top:-20px;z-index:4;background:var(--bg);padding-top:20px;margin-top:-20px;
   box-shadow:0 8px 10px -10px rgba(0,0,0,.25)}
-.fieldrow{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:8px 0 10px}
-.flab{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px;font-weight:600}
-.flab input[type=text]{width:250px;font-size:12.5px;padding:5px 9px}
-.flab input[type=checkbox]{width:15px;height:15px;accent-color:var(--warn)}
+.rfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 10px;padding:8px 0 10px;align-items:end}
+.rf{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.rf input[type=text]{font-size:12.5px;padding:4px 8px;width:100%}
+.rf input.miss{border-color:var(--warn)}
+.p65row{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:600;padding-bottom:6px}
+.p65row input{width:15px;height:15px;accent-color:var(--warn)}
 .spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
@@ -340,13 +342,13 @@ function flashIf(ev){
 
 function itemEvents(id){ return events.filter(e => e.item_id === id); }
 function fieldsFor(id){
-  const f = { warranty: '', prop65: false };
-  for (const e of itemEvents(id)) if (e.kind === 'set_field' && e.patch){
-    if (e.patch.warranty !== undefined) f.warranty = e.patch.warranty;
-    if (e.patch.prop65 !== undefined) f.prop65 = !!e.patch.prop65;
-  }
+  const f = {};
+  for (const e of itemEvents(id)) if (e.kind === 'set_field' && e.patch) Object.assign(f, e.patch);
   return f;
 }
+const RF = [['brand','Brand'],['manufacturer','Manufacturer'],['model_number','Model #'],
+  ['model_name','Model Name'],['number_of_items','# Items'],['material','Material'],
+  ['color','Color'],['size','Size'],['included_components','Included Components'],['warranty','Warranty']];
 function itemStatus(id){
   let st = null;
   for (const e of itemEvents(id)){
@@ -436,7 +438,7 @@ function threadHTML(d){
       if (e.kind==='unskip') return `<div class="msg sys">— ▶ Resumed by ${esc(who)} —</div>`;
       if (e.kind==='upload') return `<div class="msg user"><div class="who">${esc(who)}</div>📷 Uploaded a photo</div>`;
       if (e.kind==='confirm_live') return `<div class="msg sys">— 🚀 Live push confirmed by ${esc(who)} —</div>`;
-      if (e.kind==='set_field') return `<div class="msg sys">— ⚙ ${esc(who)} set ${esc(Object.keys(e.patch||{}).map(k=>k==='prop65'?('Prop 65 '+((e.patch||{}).prop65?'ON':'OFF')):'warranty').join(', '))} —</div>`;
+      if (e.kind==='set_field') return `<div class="msg sys">— ⚙ ${esc(who)} set ${esc(Object.keys(e.patch||{}).map(k=>k==='prop65'?('Prop 65 '+((e.patch||{}).prop65?'ON':'OFF')):k.replace(/_/g,' ')).join(', '))} —</div>`;
       const label = e.kind==='approve' ? '✔ Approved for launch' + (e.text?': ':'') : e.kind==='revise' ? '✎ Change request: ' : '';
       return `<div class="msg user"><div class="who">${esc(who)}</div>${esc(label)}${esc(e.text||'')}</div>`;
     }
@@ -459,8 +461,10 @@ function render(){
   const noteVal = document.getElementById('note')?.value ?? '';
   const chatVal = document.getElementById('chat')?.value ?? '';
   const flds = fieldsFor(d.id);
-  const wEl0 = document.getElementById('warranty');
-  const warVal = (wEl0 && wEl0.dataset.item === d.id) ? wEl0.value : (flds.warranty || '');
+  const rfDef = { brand: camp.brand||'', manufacturer: camp.brand||'', model_number: d.mpn||'',
+    model_name: d.model_name||'', number_of_items: '1' };
+  const rfVal = k => { const el = document.getElementById('rf-'+k);
+    return (el && el.dataset.item === d.id) ? el.value : String(flds[k] ?? rfDef[k] ?? ''); };
   const fam0 = d.families?.[0];
   const parentView = d.is_family && !kid && fam0;
   const mMpn = kid?.mpn || d.mpn;
@@ -487,9 +491,10 @@ function render(){
     <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
     <div style="grid-column:span 2"><div class="k">Browse node</div><div class="v">${esc(d.browse_node||'—')}</div></div>
   </div>
-  <div class="fieldrow">
-    <label class="flab">Warranty <input type="text" id="warranty" data-item="${d.id}" placeholder="e.g. 2-Year Manufacturer Warranty" value="${esc(warVal)}"></label>
-    <label class="flab"><input type="checkbox" id="prop65" ${flds.prop65?'checked':''}> ⚠ CA Prop 65 warning</label>
+  <div class="rfgrid">
+    ${RF.map(([k,lab])=>{ const v = rfVal(k);
+      return `<label class="rf">${lab}<input type="text" id="rf-${k}" data-item="${d.id}" value="${esc(v)}" class="${v?'':'miss'}"></label>`; }).join('')}
+    <label class="p65row"><input type="checkbox" id="prop65" ${flds.prop65?'checked':''}> ⚠ Prop 65</label>
   </div>
   </div>
 
@@ -580,8 +585,10 @@ function render(){
   if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
   const upl = document.getElementById('upl');
   if (upl) upl.onchange = () => doUpload(upl.files);
-  const wIn = document.getElementById('warranty');
-  if (wIn) wIn.onchange = () => insertEvent('set_field', { patch: { warranty: wIn.value.trim() } });
+  for (const [k] of RF){
+    const el = document.getElementById('rf-'+k);
+    if (el) el.onchange = () => insertEvent('set_field', { patch: { [k]: el.value.trim() } });
+  }
   const p65 = document.getElementById('prop65');
   if (p65) p65.onchange = () => insertEvent('set_field', { patch: { prop65: p65.checked } });
   const th = document.querySelector('.thread');
