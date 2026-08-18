@@ -467,8 +467,11 @@ function render(){
   const chatVal = document.getElementById('chat')?.value ?? '';
   const fBase = fieldsFor(d.id);
   const fKid = kid ? fieldsFor(d.id, kid.id) : {};
-  const rfDef = { brand: camp.brand||'', manufacturer: camp.brand||'', model_number: d.mpn||'',
-    model_name: d.model_name||'', number_of_items: '1' };
+  // Model # = the numeric part number (00.xxxx style); Model Name = the code
+  // (RD-S200-B1 style). Numeric mpns ARE part numbers; lettered mpns are codes.
+  const numPn = /^[\d.]+$/.test(d.mpn||'');
+  const rfDef = { brand: camp.brand||'', manufacturer: camp.brand||'',
+    model_number: numPn ? d.mpn : '', model_name: numPn ? '' : (d.mpn||''), number_of_items: '1' };
   const rfVal = k => {
     if (fKid[k] !== undefined && fKid[k] !== '') return String(fKid[k]);
     if (kid){
