@@ -144,12 +144,14 @@ textarea{min-height:70px;resize:vertical}
 .statuschip.answered{background:var(--chip-ans);color:var(--ans)}
 .topbar{position:sticky;top:-20px;z-index:4;background:var(--bg);padding-top:20px;margin-top:-20px;
   box-shadow:0 8px 10px -10px rgba(0,0,0,.25)}
-.rfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 10px;padding:8px 0 10px;align-items:end}
-.rf{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);font-weight:700}
-.rf input[type=text]{font-size:12.5px;padding:4px 8px;width:100%}
-.rf input.miss{border-color:var(--warn)}
-.p65row{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);font-weight:600;padding-bottom:6px}
-.p65row input{width:15px;height:15px;accent-color:var(--warn)}
+.rfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:8px 0 6px}
+.rfgrid>div{background:var(--card);padding:7px 12px}
+.rfgrid .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.rfgrid .v{font-size:13px;margin-top:1px}
+.rfgrid>div.missv{background:var(--chip-warn)}
+.rfgrid>div.missv .v{color:var(--warn);font-weight:700}
+.rfhint{font-size:11.5px;color:var(--mut);margin:0 0 8px}
 .spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
@@ -341,9 +343,11 @@ function flashIf(ev){
 }
 
 function itemEvents(id){ return events.filter(e => e.item_id === id); }
-function fieldsFor(id){
+function fieldsFor(id, childId){
   const f = {};
-  for (const e of itemEvents(id)) if (e.kind === 'set_field' && e.patch) Object.assign(f, e.patch);
+  for (const e of itemEvents(id)) if (e.kind === 'set_field' && e.patch){
+    if (childId ? e.child_id === childId : !e.child_id) Object.assign(f, e.patch);
+  }
   return f;
 }
 const RF = [['brand','Brand'],['manufacturer','Manufacturer'],['model_number','Model #'],
@@ -460,11 +464,21 @@ function render(){
   const busy = ['revising','launching','validating'].includes(st);
   const noteVal = document.getElementById('note')?.value ?? '';
   const chatVal = document.getElementById('chat')?.value ?? '';
-  const flds = fieldsFor(d.id);
+  const fBase = fieldsFor(d.id);
+  const fKid = kid ? fieldsFor(d.id, kid.id) : {};
   const rfDef = { brand: camp.brand||'', manufacturer: camp.brand||'', model_number: d.mpn||'',
     model_name: d.model_name||'', number_of_items: '1' };
-  const rfVal = k => { const el = document.getElementById('rf-'+k);
-    return (el && el.dataset.item === d.id) ? el.value : String(flds[k] ?? rfDef[k] ?? ''); };
+  const rfVal = k => {
+    if (fKid[k] !== undefined && fKid[k] !== '') return String(fKid[k]);
+    if (kid){
+      if (k === 'size' && kid.size) return String(kid.size);
+      if (k === 'color' && kid.color) return String(kid.color);
+      if (k === 'model_number' && kid.mpn) return String(kid.mpn);
+    }
+    if (fBase[k] !== undefined && fBase[k] !== '') return String(fBase[k]);
+    return String(rfDef[k] ?? '');
+  };
+  const p65v = fKid.prop65 ?? fBase.prop65 ?? false;
   const fam0 = d.families?.[0];
   const parentView = d.is_family && !kid && fam0;
   const mMpn = kid?.mpn || d.mpn;
@@ -493,9 +507,10 @@ function render(){
   </div>
   <div class="rfgrid">
     ${RF.map(([k,lab])=>{ const v = rfVal(k);
-      return `<label class="rf">${lab}<input type="text" id="rf-${k}" data-item="${d.id}" value="${esc(v)}" class="${v?'':'miss'}"></label>`; }).join('')}
-    <label class="p65row"><input type="checkbox" id="prop65" ${flds.prop65?'checked':''}> ⚠ Prop 65</label>
+      return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'}</div></div>`; }).join('')}
+    <div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'}</div></div>
   </div>
+  <div class="rfhint">Change via chat — e.g. “set color to Black”, “set all variants to Black”, “warranty is 2 years”, “Prop 65 on”.</div>
   </div>
 
   <div class="mock">
@@ -585,12 +600,6 @@ function render(){
   if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
   const upl = document.getElementById('upl');
   if (upl) upl.onchange = () => doUpload(upl.files);
-  for (const [k] of RF){
-    const el = document.getElementById('rf-'+k);
-    if (el) el.onchange = () => insertEvent('set_field', { patch: { [k]: el.value.trim() } });
-  }
-  const p65 = document.getElementById('prop65');
-  if (p65) p65.onchange = () => insertEvent('set_field', { patch: { prop65: p65.checked } });
   const th = document.querySelector('.thread');
   if (th){ th.dataset.item = d.id; th.scrollTop = stick ? th.scrollHeight : oldPos; }
   renderNav();
