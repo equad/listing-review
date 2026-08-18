@@ -294,6 +294,7 @@ function applyOne(ev){
       p.bullets.forEach((t,i) => { if (typeof t === 'string' && tops[i]) tops[i].content = t; });
     }
     if (Array.isArray(p.images)) d.images = p.images;
+    if (Array.isArray(p.families)) d.families = p.families;
   }
   if (ev.kind === 'upload' && ev.path){
     const d = DATA.find(x => x.id === ev.item_id);
@@ -488,6 +489,7 @@ function render(){
     <div class="decide">
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
+      ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
       <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
       ${st==='skipped'
         ? '<button id="btn-skip">▶ Resume</button>'
@@ -507,6 +509,7 @@ function render(){
   document.querySelectorAll('.vchip').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; render(); });
   bind('btn-approve', doApprove);
   bind('btn-live', doLive);
+  bind('btn-verify', doVerify);
   bind('btn-changes', doRevise);
   bind('btn-skip', doSkip);
   bind('btn-chat', doChat);
@@ -567,6 +570,11 @@ async function doLive(){
   if (!confirm(`Push this listing LIVE to Amazon?\n\n${d.title || d.short_title}\nSKU ${d.upc}${d.asin ? ' · ASIN ' + d.asin : ''}\n\nThis updates the real product page.`)) return;
   const id = await insertEvent('confirm_live');
   if (id) callFn('review-launch', { action: 'live', confirm: true, campaign: camp.key, item_id: d.id });
+}
+async function doVerify(){
+  const b = document.getElementById('btn-verify');
+  if (b){ b.disabled = true; b.textContent = '🔍 Verifying…'; }
+  await callFn('review-launch', { action: 'verify', campaign: camp.key, item_id: DATA[cur].id });
 }
 async function doSkip(){
   const skipped = itemStatus(DATA[cur].id) === 'skipped';
