@@ -519,6 +519,10 @@ function render(){
   </div>
   <div class="rfgrid">
     ${RF.map(([k,lab])=>{ const v = rfVal(k);
+      if (parentView && (k==='size' || k==='model_number')){
+        const note = k==='size' ? 'not needed' : (v ? esc(v) : (kids[0]?.mpn ? esc(String(kids[0].mpn)) + ' · from 1st variant' : 'not needed'));
+        return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
+      }
       if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
       return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
     ${rfEdit === 'prop65'
