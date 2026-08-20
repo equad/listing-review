@@ -102,6 +102,7 @@ main{flex:1;overflow-y:auto;padding:20px 22px 80px}
 .vchip.sel{border:2px solid var(--az-link);padding:4px 9px;background:#EDFDFF}
 .vchip.pchip{border:1px dashed #adb1b8;font-weight:700;letter-spacing:.02em;color:var(--az-link)}
 .vchip.pchip.sel{border:2px solid var(--az-link);background:#EDFDFF}
+.vchip.unavail{border-style:dashed;opacity:.5}
 .abt{font-size:14px;font-weight:700;margin:14px 0 0}
 .mock ul{margin:8px 0 0;padding-left:18px}
 .mock li{font-size:13.5px;line-height:1.45;margin-bottom:7px}
@@ -628,12 +629,32 @@ function render(){
         <div class="stars">★★★★★<span>New — no reviews yet</span></div>
         ${d.highlights?`<p class="hlx">${esc(d.highlights)}</p>`:''}
         <hr class="rule">
-        ${kids.length?`
+        ${kids.length?(()=>{
+          // Two-dimension families (SIZE/COLOR) preview like the real Amazon
+          // detail page: independent Size and Color pickers, one child per combo.
+          const hasSz = kids.some(k=>k.size), hasCl = kids.some(k=>k.color);
+          const parentChip = `<span class="vchip pchip ${childSel<0?'sel':''}" data-i="-1">❖ Parent</span>`;
+          if (hasSz && hasCl){
+            const sizes = [...new Set(kids.map(k=>String(k.size||'')).filter(Boolean))];
+            const colors = [...new Set(kids.map(k=>String(k.color||'')).filter(Boolean))];
+            const combo = (s,c)=>kids.some(x=>String(x.size||'')===s && String(x.color||'')===c);
+            return `
+          <div class="varlab">${kid?`Variant: <b>${esc(kid.size)} · ${esc(kid.color)}</b>`:`<b>Parent listing</b> — shared copy &amp; full gallery`}</div>
+          <div class="chiprow">${parentChip}</div>
+          <div class="varlab">Size: <b>${kid?esc(kid.size):'—'}</b></div>
+          <div class="chiprow">${sizes.map(s=>`<span class="vchip ${kid&&String(kid.size)===s?'sel':''} ${kid&&!combo(s,String(kid.color||''))?'unavail':''}" data-vsz="${esc(s)}">${esc(s)}</span>`).join('')}</div>
+          <div class="varlab">Color: <b>${kid?esc(kid.color):'—'}</b></div>
+          <div class="chiprow">${colors.map(cv=>`<span class="vchip ${kid&&String(kid.color)===cv?'sel':''} ${kid&&!combo(String(kid.size||''),cv)?'unavail':''}" data-vcl="${esc(cv)}">${esc(cv)}</span>`).join('')}</div>
+          <hr class="rule">`;
+          }
+          const dimLab = hasCl && !hasSz ? 'Color' : 'Size';
+          return `
           <div class="varlab">${kid
-            ? `${esc(theme && theme.toLowerCase()==='size'?'Size':theme)}: <b>${esc(kid.size || kid.color || kid.sku)}</b>`
+            ? `${esc(dimLab)}: <b>${esc(kid.size || kid.color || kid.sku)}</b>`
             : `<b>Parent listing</b> — shared copy &amp; full gallery`}</div>
-          <div class="chiprow"><span class="vchip pchip ${childSel<0?'sel':''}" data-i="-1">❖ Parent</span>${kids.map((k,i)=>`<span class="vchip ${i===childSel?'sel':''}" data-i="${i}">${esc(k.size||k.color||k.sku)}</span>`).join('')}</div>
-          <hr class="rule">`:''}
+          <div class="chiprow">${parentChip}${kids.map((k,i)=>`<span class="vchip ${i===childSel?'sel':''}" data-i="${i}">${esc(k.size||k.color||k.sku)}</span>`).join('')}</div>
+          <hr class="rule">`;
+        })():''}
         <div class="abt">About this item</div>
         <ul>${bulletsFor(d).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
       </div>
@@ -687,7 +708,20 @@ function render(){
   </div>`;
 
   document.querySelectorAll('.thumb').forEach(t => t.onclick = () => { imgSel = +t.dataset.i; render(); });
-  document.querySelectorAll('.vchip').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; rfEdit = null; render(); });
+  document.querySelectorAll('.vchip[data-i]').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; rfEdit = null; render(); });
+  // Two-dimension pickers: clicking a size keeps the current color (and vice
+  // versa) when that combo exists; otherwise jump to the first match.
+  const pickCombo = (sz, cl) => {
+    const d2 = DATA[cur], kids2 = kidsFor(d2), kid2 = currentChild(d2);
+    const S = v => String(v || '');
+    const want = { size: sz ?? S(kid2?.size), color: cl ?? S(kid2?.color) };
+    let idx = kids2.findIndex(k => S(k.size) === want.size && S(k.color) === want.color);
+    if (idx < 0) idx = kids2.findIndex(k => sz != null ? S(k.size) === sz : S(k.color) === cl);
+    if (idx < 0) return;
+    childSel = idx; imgSel = 0; rfEdit = null; render();
+  };
+  document.querySelectorAll('.vchip[data-vsz]').forEach(c => c.onclick = () => pickCombo(c.dataset.vsz, null));
+  document.querySelectorAll('.vchip[data-vcl]').forEach(c => c.onclick = () => pickCombo(null, c.dataset.vcl));
   bind('btn-approve', doApprove);
   bind('btn-live', doLive);
   bind('btn-verify', doVerify);
