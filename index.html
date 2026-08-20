@@ -189,6 +189,13 @@ textarea{min-height:70px;resize:vertical}
   background:var(--mono-bg);color:var(--mut);cursor:pointer}
 .cact:hover{border-color:var(--accent);color:var(--ink)}
 .cact.del:hover{border-color:var(--st-bad);color:var(--st-bad)}
+.importrow{display:flex;gap:8px;margin:0 0 16px}
+.importrow input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:10px 14px;color:var(--ink);font:inherit;font-size:13px}
+.importrow input:focus{outline:none;border-color:var(--accent)}
+.importrow button{background:var(--accent);color:#fff;border:none;border-radius:10px;
+  padding:10px 18px;font-weight:700;cursor:pointer}
+.importrow button:disabled{opacity:.5;cursor:default}
 .homelink{font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:none;cursor:pointer}
 .hidden{display:none !important}
 </style>
@@ -209,6 +216,10 @@ textarea{min-height:70px;resize:vertical}
 <div id="picker" class="center hidden">
   <h2 style="margin:0 0 4px">Campaigns</h2>
   <p class="sub" style="margin:0 0 18px">Pick a review. <span id="whoami"></span> · <button class="homelink" id="btn-logout">Sign out</button></p>
+  <div class="importrow">
+    <input id="imp-link" placeholder="Paste a Google Drive folder link to create a new campaign… (folder must be shared: Anyone with the link)">
+    <button id="btn-import">⤓ Import</button>
+  </div>
   <div id="camplist"></div>
 </div>
 
@@ -310,6 +321,40 @@ function showPicker(){
   document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
   document.querySelectorAll('.cact[data-done]').forEach(el => el.onclick = (e) => { e.stopPropagation(); toggleDone(el.dataset.done); });
   document.querySelectorAll('.cact[data-del]').forEach(el => el.onclick = (e) => { e.stopPropagation(); deleteCampaign(el.dataset.del); });
+  const impBtn = document.getElementById('btn-import');
+  if (impBtn) impBtn.onclick = startImport;
+}
+async function refreshCampaigns(){
+  const [{ data }, statsQ] = await Promise.all([
+    sb.from('review_campaigns')
+      .select('key,title,sub,brand,group_field,updated_at,archived')
+      .order('sort_order', { ascending: true }),
+    sb.from('review_campaign_stats').select('key,total,live,skipped'),
+  ]);
+  campStats = Object.fromEntries((statsQ.data || []).map(s => [s.key, s]));
+  if (data) campaigns = data;
+  showPicker();
+}
+async function startImport(){
+  const inp = document.getElementById('imp-link');
+  const link = inp.value.trim();
+  if (!/folders\//.test(link)){ alert('Paste a Google Drive FOLDER link (…/drive/folders/…).'); inp.focus(); return; }
+  const btn = document.getElementById('btn-import');
+  btn.disabled = true; btn.textContent = 'Starting…';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/review-import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token, 'apikey': ANON_KEY },
+      body: JSON.stringify({ link }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok){ alert(out.error || `Import failed (${res.status})`); return; }
+    inp.value = '';
+    alert(out.message || 'Import started.');
+    await refreshCampaigns();
+  } finally {
+    btn.disabled = false; btn.textContent = '⤓ Import';
+  }
 }
 async function toggleDone(key){
   const c = campaigns.find(x => x.key === key);
