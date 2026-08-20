@@ -181,6 +181,14 @@ textarea{min-height:70px;resize:vertical}
 .cpill.skip{background:var(--mono-bg);color:var(--mut)}
 .cbar{margin-top:8px;height:6px;border-radius:99px;background:var(--mono-bg);overflow:hidden;display:flex}
 .cbar .fill{background:var(--ok);height:100%}
+.campcard{position:relative}
+.campcard.archived{opacity:.45}
+.campcard.archived:hover{opacity:.8}
+.cacts{position:absolute;top:14px;right:16px;display:flex;gap:6px}
+.cact{font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px;border:1px solid var(--line);
+  background:var(--mono-bg);color:var(--mut);cursor:pointer}
+.cact:hover{border-color:var(--accent);color:var(--ink)}
+.cact.del:hover{border-color:var(--st-bad);color:var(--st-bad)}
 .homelink{font-size:12.5px;color:var(--accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:none;cursor:pointer}
 .hidden{display:none !important}
 </style>
@@ -262,7 +270,7 @@ async function boot(){
   if (booted) return; booted = true;
   const [{ data, error }, statsQ] = await Promise.all([
     sb.from('review_campaigns')
-      .select('key,title,sub,brand,group_field,updated_at')
+      .select('key,title,sub,brand,group_field,updated_at,archived')
       .order('sort_order', { ascending: true }),
     sb.from('review_campaign_stats').select('key,total,live,skipped'),
   ]);
@@ -280,7 +288,8 @@ async function boot(){
 function showPicker(){
   show('picker');
   document.getElementById('whoami').textContent = email ?? '';
-  document.getElementById('camplist').innerHTML = campaigns.map(c => {
+  document.getElementById('camplist').innerHTML = [...campaigns]
+    .sort((a, b) => (a.archived ? 1 : 0) - (b.archived ? 1 : 0)).map(c => {
     const s = campStats[c.key];
     let stat = '';
     if (s && s.total){
@@ -292,9 +301,32 @@ function showPicker(){
       </div>
       <div class="cbar"><span class="fill" style="width:${(s.live / Math.max(1, s.total - s.skipped) * 100).toFixed(1)}%"></span></div>`;
     }
-    return `<div class="campcard" data-k="${esc(c.key)}"><div class="cname">${esc(c.title)}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}</div>`;
+    const acts = `<div class="cacts">
+      <button class="cact done" data-done="${esc(c.key)}">${c.archived ? '↩ Reopen' : '✓ Done'}</button>
+      <button class="cact del" data-del="${esc(c.key)}">🗑 Delete</button>
+    </div>`;
+    return `<div class="campcard${c.archived ? ' archived' : ''}" data-k="${esc(c.key)}">${acts}<div class="cname">${esc(c.title)}${c.archived ? ' <span class="cpill skip">archived</span>' : ''}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}</div>`;
   }).join('');
   document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
+  document.querySelectorAll('.cact[data-done]').forEach(el => el.onclick = (e) => { e.stopPropagation(); toggleDone(el.dataset.done); });
+  document.querySelectorAll('.cact[data-del]').forEach(el => el.onclick = (e) => { e.stopPropagation(); deleteCampaign(el.dataset.del); });
+}
+async function toggleDone(key){
+  const c = campaigns.find(x => x.key === key);
+  const { error } = await sb.from('review_campaigns').update({ archived: !c.archived }).eq('key', key);
+  if (error){ alert('Could not update: ' + error.message); return; }
+  c.archived = !c.archived;
+  showPicker();
+}
+async function deleteCampaign(key){
+  const c = campaigns.find(x => x.key === key);
+  const typed = prompt(`Delete "${c.title}" and its entire review history?\nThis cannot be undone (Amazon listings are NOT affected).\n\nType the campaign name "${key}" to confirm:`);
+  if (typed === null) return;
+  if (typed.trim().toLowerCase() !== key.toLowerCase()){ alert('Name did not match — nothing was deleted.'); return; }
+  const { error } = await sb.from('review_campaigns').delete().eq('key', key);
+  if (error){ alert('Could not delete: ' + error.message); return; }
+  campaigns = campaigns.filter(x => x.key !== key);
+  showPicker();
 }
 
 // ---------- campaign console ----------
