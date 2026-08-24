@@ -802,7 +802,15 @@ async function doApprove(){
   const note = document.getElementById('note').value.trim();
   document.getElementById('note').value = '';
   const id = await insertEvent('approve', { text: note || null });
-  if (id) callFn('review-launch', { action: 'validate', campaign: camp.key, item_id: DATA[cur].id });
+  if (id) callFn('review-launch', { action: 'validate', campaign: camp.key, item_id: DATA[cur].id }).then(refreshData);
+}
+// Re-pull campaign data after validation so launcher-written fields
+// (resolved browse node / category) show up without reopening the campaign.
+async function refreshData(){
+  try {
+    const { data: full } = await sb.from('review_campaigns').select('data').eq('key', camp.key).single();
+    if (full?.data) { DATA = full.data; applyPatches(); render(); }
+  } catch (e) { console.warn('refreshData', e); }
 }
 async function doLive(){
   const d = DATA[cur];
