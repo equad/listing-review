@@ -159,9 +159,12 @@ textarea{min-height:70px;resize:vertical}
 .vedit{display:flex;gap:4px;align-items:center;margin-top:2px}
 .vedit input[type=text]{font-size:12.5px;padding:3px 6px;width:100%;min-width:70px}
 .vedit input[type=checkbox]{width:15px;height:15px;accent-color:var(--warn)}
-.rfok,.rfx{border:1px solid var(--line);background:var(--card);cursor:pointer;border-radius:5px;font-size:12px;padding:2px 7px}
-.rfok{color:var(--ok);border-color:var(--ok)}
-.rfx{color:var(--mut)}
+.ttl-edit input[type=text]{font-size:17px;padding:4px 7px}
+.blt-edit{display:inline-flex;width:100%}
+.blt-edit input[type=text]{font-size:13px}
+.rfok,.rfx,.ttlok,.ttlx,.bltok,.bltx{border:1px solid var(--line);background:var(--card);cursor:pointer;border-radius:5px;font-size:12px;padding:2px 7px}
+.rfok,.ttlok,.bltok{color:var(--ok);border-color:var(--ok)}
+.rfx,.ttlx,.bltx{color:var(--mut)}
 .spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:99px;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .uplbtn{display:inline-block;cursor:pointer;border:1px dashed #adb1b8;border-radius:8px;padding:8px 16px;font-size:13px;color:#0F1111;background:#FAFAFA}
@@ -261,6 +264,7 @@ const show = id => {
 let session = null, email = null;
 let campaigns = [], campStats = {}, camp = null, DATA = [], events = [];
 let cur = 0, imgSel = 0, childSel = 0, channel = null, rfEdit = null;
+let titleEdit = false, bulletEdit = -1;
 
 // ---------- auth ----------
 document.getElementById('btn-login').onclick = async () => {
@@ -624,7 +628,9 @@ function render(){
           <div class="sub" id="upl-status"></div></div>`}</div>
       </div>
       <div>
-        <h2 class="ttl">${esc(kid?.attrs?.child_title || d.title || d.short_title)}</h2>
+        ${titleEdit && !kid
+          ? `<div class="vedit ttl-edit"><input type="text" id="ttl-in" value="${esc(d.title||'')}" maxlength="200"><button class="ttlok">✓</button><button class="ttlx">✕</button></div>`
+          : `<h2 class="ttl">${esc(kid?.attrs?.child_title || d.title || d.short_title)}${!kid?` <button class="rfedit ttledit" title="Edit title">✎</button>`:''}</h2>`}
         <div class="byline">Visit the ${esc(camp.brand||'')} Store</div>
         <div class="stars">★★★★★<span>New — no reviews yet</span></div>
         ${d.highlights?`<p class="hlx">${esc(d.highlights)}</p>`:''}
@@ -656,7 +662,10 @@ function render(){
           <hr class="rule">`;
         })():''}
         <div class="abt">About this item</div>
-        <ul>${bulletsFor(d).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+        <ul>${bulletsFor(d).map((b,i)=> (!kid && bulletEdit===i)
+          ? `<li><div class="vedit blt-edit"><input type="text" id="blt-in" value="${esc(b)}" maxlength="220"><button class="bltok">✓</button><button class="bltx">✕</button></div></li>`
+          : `<li>${esc(b)}${!kid?` <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button>`:''}</li>`).join('')}</ul>
+        ${!kid && bulletEdit===-1 ? `<div class="rfhint">Click ✎ on the title or a bullet to edit it directly.</div>` : ''}
       </div>
       <div class="buybox">
         <div class="price"><sup>$</sup>${price!=null?Number(price).toFixed(2):'—'}</div>
@@ -708,7 +717,7 @@ function render(){
   </div>`;
 
   document.querySelectorAll('.thumb').forEach(t => t.onclick = () => { imgSel = +t.dataset.i; render(); });
-  document.querySelectorAll('.vchip[data-i]').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; rfEdit = null; render(); });
+  document.querySelectorAll('.vchip[data-i]').forEach(c => c.onclick = () => { childSel = +c.dataset.i; imgSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; render(); });
   // Two-dimension pickers: clicking a size keeps the current color (and vice
   // versa) when that combo exists; otherwise jump to the first match.
   const pickCombo = (sz, cl) => {
@@ -718,7 +727,7 @@ function render(){
     let idx = kids2.findIndex(k => S(k.size) === want.size && S(k.color) === want.color);
     if (idx < 0) idx = kids2.findIndex(k => sz != null ? S(k.size) === sz : S(k.color) === cl);
     if (idx < 0) return;
-    childSel = idx; imgSel = 0; rfEdit = null; render();
+    childSel = idx; imgSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; render();
   };
   document.querySelectorAll('.vchip[data-vsz]').forEach(c => c.onclick = () => pickCombo(c.dataset.vsz, null));
   document.querySelectorAll('.vchip[data-vcl]').forEach(c => c.onclick = () => pickCombo(null, c.dataset.vcl));
@@ -747,6 +756,33 @@ function render(){
     if (e.key === 'Enter') commitRf();
     if (e.key === 'Escape'){ rfEdit = null; render(); }
   };
+  const ttlEditBtn = document.querySelector('.ttledit');
+  if (ttlEditBtn) ttlEditBtn.onclick = () => {
+    titleEdit = true; render();
+    const el = document.getElementById('ttl-in'); if (el){ el.focus(); el.select(); }
+  };
+  const ttlOk = document.querySelector('.ttlok');
+  if (ttlOk) ttlOk.onclick = commitTitle;
+  const ttlX = document.querySelector('.ttlx');
+  if (ttlX) ttlX.onclick = () => { titleEdit = false; render(); };
+  const ttlIn = document.getElementById('ttl-in');
+  if (ttlIn) ttlIn.onkeydown = e => {
+    if (e.key === 'Enter') commitTitle();
+    if (e.key === 'Escape'){ titleEdit = false; render(); }
+  };
+  document.querySelectorAll('.bltedit').forEach(b => b.onclick = () => {
+    bulletEdit = +b.dataset.bi; render();
+    const el = document.getElementById('blt-in'); if (el){ el.focus(); el.select(); }
+  });
+  const bltOk = document.querySelector('.bltok');
+  if (bltOk) bltOk.onclick = commitBullet;
+  const bltX = document.querySelector('.bltx');
+  if (bltX) bltX.onclick = () => { bulletEdit = -1; render(); };
+  const bltIn = document.getElementById('blt-in');
+  if (bltIn) bltIn.onkeydown = e => {
+    if (e.key === 'Enter') commitBullet();
+    if (e.key === 'Escape'){ bulletEdit = -1; render(); }
+  };
   const th = document.querySelector('.thread');
   if (th){ th.dataset.item = d.id; th.scrollTop = stick ? th.scrollHeight : oldPos; }
   renderNav();
@@ -760,9 +796,28 @@ function commitRf(){
   rfEdit = null;
   insertEvent('set_field', { patch: { [k]: val } });
 }
+function commitTitle(){
+  const val = (document.getElementById('ttl-in')?.value ?? '').trim();
+  titleEdit = false;
+  const d = DATA[cur];
+  if (!val || !d || val === d.title) { render(); return; }
+  d.title = val;
+  insertEvent('revision', { patch: { title: val } });
+}
+function commitBullet(){
+  if (bulletEdit < 0) return;
+  const i = bulletEdit;
+  const val = (document.getElementById('blt-in')?.value ?? '').trim();
+  bulletEdit = -1;
+  const d = DATA[cur];
+  const tops = (d?.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
+  if (!val || !tops[i] || val === tops[i].content) { render(); return; }
+  tops[i].content = val;
+  insertEvent('revision', { patch: { bullets: tops.map(b => b.content) } });
+}
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
 function clearDrafts(){ for (const id of ['note','chat']){ const el = document.getElementById(id); if (el) el.value = ''; } }
-function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; clearDrafts(); render();
+function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; clearDrafts(); render();
   document.querySelector('#console main').scrollTop = 0; }
 
 // ---------- actions ----------
