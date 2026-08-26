@@ -417,6 +417,15 @@ function applyOne(ev){
       const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
       p.bullets.forEach((t,i) => { if (typeof t === 'string' && tops[i]) tops[i].content = t; });
     }
+    if (p.child_bullet !== undefined && ev.child_id){
+      const cb = (d.bullets||[]).find(b => b.child_id === ev.child_id);
+      if (cb) cb.content = p.child_bullet;
+    }
+    if (p.child_title !== undefined && ev.child_id){
+      const fam = (d.families||[])[0];
+      const c = fam?.children?.find(x => x.id === ev.child_id);
+      if (c) { c.attrs = c.attrs || {}; c.attrs.child_title = p.child_title; }
+    }
     if (Array.isArray(p.images)) d.images = p.images;
     if (Array.isArray(p.families)) d.families = p.families;
   }
@@ -516,11 +525,14 @@ function imagesFor(d){
   return kimgs.length ? kimgs : (d.images || []);
 }
 function bulletsFor(d){
+  // Returns the actual bullet objects (not just .content strings) so callers
+  // can tell a child-specific bullet from a shared one (via .child_id) and
+  // edit it in place.
   const shared = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
   const kid = currentChild(d);
-  if (!kid) return shared.map(b=>b.content);
+  if (!kid) return shared;
   const kidBul = (d.bullets||[]).filter(b => b.child_id && b.child_id === kid.id);
-  return [...kidBul.map(b=>b.content), ...shared.filter(b=>b.scope==='parent_shared').map(b=>b.content)];
+  return [...kidBul, ...shared.filter(b=>b.scope==='parent_shared')];
 }
 function threadHTML(d){
   const evs = itemEvents(d.id).filter(e =>
@@ -628,9 +640,12 @@ function render(){
           <div class="sub" id="upl-status"></div></div>`}</div>
       </div>
       <div>
-        ${titleEdit && !kid
-          ? `<div class="vedit ttl-edit"><input type="text" id="ttl-in" value="${esc(d.title||'')}" maxlength="200"><button class="ttlok">✓</button><button class="ttlx">✕</button></div>`
-          : `<h2 class="ttl">${esc(kid?.attrs?.child_title || d.title || d.short_title)}${!kid?` <button class="rfedit ttledit" title="Edit title">✎</button>`:''}</h2>`}
+        ${(() => {
+          const shownTitle = kid?.attrs?.child_title || d.title || d.short_title;
+          return titleEdit
+            ? `<div class="vedit ttl-edit"><input type="text" id="ttl-in" value="${esc(shownTitle||'')}" maxlength="200"><button class="ttlok">✓</button><button class="ttlx">✕</button></div>`
+            : `<h2 class="ttl">${esc(shownTitle)} <button class="rfedit ttledit" title="Edit title">✎</button></h2>`;
+        })()}
         <div class="byline">Visit the ${esc(camp.brand||'')} Store</div>
         <div class="stars">★★★★★<span>New — no reviews yet</span></div>
         ${d.highlights?`<p class="hlx">${esc(d.highlights)}</p>`:''}
@@ -662,10 +677,10 @@ function render(){
           <hr class="rule">`;
         })():''}
         <div class="abt">About this item</div>
-        <ul>${bulletsFor(d).map((b,i)=> (!kid && bulletEdit===i)
-          ? `<li><div class="vedit blt-edit"><input type="text" id="blt-in" value="${esc(b)}" maxlength="220"><button class="bltok">✓</button><button class="bltx">✕</button></div></li>`
-          : `<li>${esc(b)}${!kid?` <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button>`:''}</li>`).join('')}</ul>
-        ${!kid && bulletEdit===-1 ? `<div class="rfhint">Click ✎ on the title or a bullet to edit it directly.</div>` : ''}
+        <ul>${bulletsFor(d).map((bo,i)=> bulletEdit===i
+          ? `<li><div class="vedit blt-edit"><input type="text" id="blt-in" value="${esc(bo.content)}" maxlength="220"><button class="bltok">✓</button><button class="bltx">✕</button></div></li>`
+          : `<li>${esc(bo.content)} <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button></li>`).join('')}</ul>
+        ${bulletEdit===-1 && !titleEdit ? `<div class="rfhint">Click ✎ on the title or a bullet to edit it directly.</div>` : ''}
       </div>
       <div class="buybox">
         <div class="price"><sup>$</sup>${price!=null?Number(price).toFixed(2):'—'}</div>
@@ -800,9 +815,18 @@ function commitTitle(){
   const val = (document.getElementById('ttl-in')?.value ?? '').trim();
   titleEdit = false;
   const d = DATA[cur];
-  if (!val || !d || val === d.title) { render(); return; }
-  d.title = val;
-  insertEvent('revision', { patch: { title: val } });
+  if (!val || !d) { render(); return; }
+  const kid = currentChild(d);
+  if (kid){
+    const cur2 = kid.attrs?.child_title || d.title || d.short_title;
+    if (val === cur2) { render(); return; }
+    kid.attrs = kid.attrs || {}; kid.attrs.child_title = val;
+    insertEvent('revision', { patch: { child_title: val }, child_id: kid.id });
+  } else {
+    if (val === d.title) { render(); return; }
+    d.title = val;
+    insertEvent('revision', { patch: { title: val }, child_id: null });
+  }
 }
 function commitBullet(){
   if (bulletEdit < 0) return;
@@ -810,10 +834,16 @@ function commitBullet(){
   const val = (document.getElementById('blt-in')?.value ?? '').trim();
   bulletEdit = -1;
   const d = DATA[cur];
-  const tops = (d?.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
-  if (!val || !tops[i] || val === tops[i].content) { render(); return; }
-  tops[i].content = val;
-  insertEvent('revision', { patch: { bullets: tops.map(b => b.content) } });
+  if (!d) { render(); return; }
+  const bo = bulletsFor(d)[i];
+  if (!val || !bo || val === bo.content) { render(); return; }
+  bo.content = val;
+  if (bo.child_id){
+    insertEvent('revision', { patch: { child_bullet: val }, child_id: bo.child_id });
+  } else {
+    const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
+    insertEvent('revision', { patch: { bullets: tops.map(b => b.content) }, child_id: null });
+  }
 }
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
 function clearDrafts(){ for (const id of ['note','chat']){ const el = document.getElementById(id); if (el) el.value = ''; } }
