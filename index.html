@@ -208,11 +208,15 @@ textarea{min-height:70px;resize:vertical}
 <div id="login" class="center hidden">
   <div class="logincard">
     <h2>Listing Review</h2>
-    <p>Bicycle Addiction — sign in with your work email. You'll get a magic link, no password.</p>
+    <p>Bicycle Addiction — sign in with your work email.</p>
     <input type="email" id="email" placeholder="you@example.com">
     <div class="decide">
       <button class="primary" id="btn-login">Send magic link</button>
       <span class="sub" id="login-msg"></span>
+    </div>
+    <input type="password" id="password" placeholder="password (if you have one set)" style="margin-top:8px">
+    <div class="decide">
+      <button id="btn-login-pw">Sign in with password</button>
     </div>
   </div>
 </div>
@@ -272,6 +276,13 @@ document.getElementById('btn-login').onclick = async () => {
   if (!em) return;
   const { error } = await sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: location.href.split('#')[0] } });
   document.getElementById('login-msg').textContent = error ? error.message : 'Check your email for the link ✉';
+};
+document.getElementById('btn-login-pw').onclick = async () => {
+  const em = document.getElementById('email').value.trim();
+  const pw = document.getElementById('password').value;
+  if (!em || !pw) return;
+  const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
+  document.getElementById('login-msg').textContent = error ? error.message : '';
 };
 document.getElementById('btn-logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 document.getElementById('btn-home').onclick = () => { if (channel) sb.removeChannel(channel); showPicker(); };
