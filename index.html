@@ -920,7 +920,7 @@ function render(){
   // needs" - Amazon's category rules are not in the public product-type schema.
   document.querySelectorAll('.ptcheck').forEach(b => b.onclick = () => {
     b.disabled = true; b.textContent = '… checking with Amazon';
-    callFn('review-launch', { action: 'validate', campaign: camp.key, item_id: DATA[cur].id }).then(refreshData);
+    callFn('review-launch', { action: 'validate', dry: true, campaign: camp.key, item_id: DATA[cur].id }).then(refreshData);
   });
   const rfOk = document.querySelector('.rfok');
   if (rfOk) rfOk.onclick = commitRf;
