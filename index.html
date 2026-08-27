@@ -255,6 +255,17 @@ textarea{min-height:70px;resize:vertical}
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://kebzvmkumimhfixrkico.supabase.co';
+// Amazon Cycling browse tree (keyword -> node -> accepted product types) - the
+// same file the launcher validates against, so the console can show where a
+// listing will land BEFORE anyone validates.
+let BTG = null, BTGloading = false;
+async function loadBTG(){
+  if (BTG || BTGloading) return; BTGloading = true;
+  try { BTG = await (await fetch(`${SUPABASE_URL}/storage/v1/object/public/review-app/meta/browse_nodes_cycling.json`)).json(); }
+  catch(e){ BTG = null; }
+  BTGloading = false;
+  if (camp && document.getElementById('view')) render();
+}
 const ANON_KEY = 'sb_publishable_hQniHzhNGLq07p6lULOOuA_bk1v-5fe';
 const sb = createClient(SUPABASE_URL, ANON_KEY);
 
@@ -476,7 +487,8 @@ function fieldsFor(id, childId){
 const RF = [['brand','Brand'],['manufacturer','Manufacturer'],['model_number','Model #'],
   ['model_name','Model Name'],['number_of_items','# Items'],['material','Material'],
   ['color','Color'],['size','Size'],['included_components','Included Components'],['warranty','Warranty']];
-const RFOPT = [['pkg_length','Box L (in)'],['pkg_width','Box W (in)'],['pkg_height','Box H (in)'],['pkg_weight','Box Wt (lb)']];
+const RFOPT = [['pkg_length','Box L (in)'],['pkg_width','Box W (in)'],['pkg_height','Box H (in)'],['pkg_weight','Box Wt (lb)'],
+  ['country_of_origin','Country (ISO)'],['amazon_product_type','PT override']];
 function itemStatus(id){
   let st = null;
   for (const e of itemEvents(id)){
@@ -633,7 +645,35 @@ function render(){
     <div><div class="k">MSRP</div><div class="v">${money(d.msrp)}</div></div>
     <div><div class="k">Dealer cost</div><div class="v">${money(d.dealer_cost)}</div></div>
     <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
-    <div style="grid-column:span 2"><div class="k">Browse node</div><div class="v">${esc(d.browse_node||'—')}</div></div>
+    ${(() => {
+      const kw = String(fKid.item_type_keyword ?? fBase.item_type_keyword ?? '').trim();
+      const po = String(fKid.amazon_product_type ?? fBase.amazon_product_type ?? '').trim().toUpperCase();
+      if (!BTG) loadBTG();
+      let body;
+      if (rfEdit === 'item_type_keyword'){
+        const opts = BTG ? Object.entries(BTG.by_keyword).sort().map(([k,ids]) =>
+          `<option value="${esc(k)}">${esc(((BTG.nodes[ids[0]]||{}).path||'').replace(/^.*?Cycling\s*>\s*/,''))}</option>`).join('') : '';
+        body = `<div class="vedit"><input type="text" id="rf-in" list="kwlist" value="${esc(kw)}" placeholder="type to search Cycling categories…"><button class="rfok">✓</button><button class="rfx">✕</button></div><datalist id="kwlist">${opts}</datalist>`;
+      } else if (!kw){
+        body = `<div class="v" style="color:var(--bad)">not set — Amazon would guess the category <button class="rfedit" data-k="item_type_keyword">✎ pick</button></div>`;
+      } else if (!BTG){
+        body = `<div class="v">${esc(kw)} · loading tree…</div>`;
+      } else {
+        const ids = BTG.by_keyword?.[kw]; const node = ids && BTG.nodes[ids[0]];
+        if (!node) body = `<div class="v" style="color:var(--bad)">⚠ "${esc(kw)}" is not in Amazon's Cycling tree — this would list OUTSIDE Cycling <button class="rfedit" data-k="item_type_keyword">✎</button></div>`;
+        else {
+          const pts = node.product_types || [];
+          const pt = po || pts[0] || '?';
+          const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
+          const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
+          const also = pts.filter(p => p !== pt);
+          body = `<div class="v">${esc(short)} <span style="opacity:.65">· ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
+            <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
+            <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
+        }
+      }
+      return `<div style="grid-column:span 2"><div class="k">Category · keyword ${esc(kw||'—')}${d.browse_node?' · confirmed at last validate':''}</div>${body}</div>`;
+    })()}
   </div>
   <div class="rfgrid">
     ${RF.map(([k,lab])=>{ const v = rfVal(k);
@@ -785,6 +825,10 @@ function render(){
     rfEdit = b.dataset.k; render();
     const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
   });
+  document.querySelectorAll('.ptcheck').forEach(b => b.onclick = () => {
+    b.disabled = true; b.textContent = '… asking Amazon';
+    callFn('review-launch', { action: 'pt_requirements', campaign: camp.key, item_id: DATA[cur].id });
+  });
   const rfOk = document.querySelector('.rfok');
   if (rfOk) rfOk.onclick = commitRf;
   const rfX = document.querySelector('.rfx');
@@ -828,11 +872,17 @@ function render(){
 function commitRf(){
   if (!rfEdit) return;
   const k = rfEdit;
-  const val = k === 'prop65'
+  let val = k === 'prop65'
     ? (document.getElementById('rf-in-p65')?.checked ?? false)
     : (document.getElementById('rf-in')?.value ?? '').trim();
+  // Category keyword: lowercase, and tolerate a pasted "keyword — path" label.
+  if (k === 'item_type_keyword') val = String(val).split(' — ')[0].trim().toLowerCase();
+  if (k === 'amazon_product_type') val = String(val).trim().toUpperCase();
+  if (k === 'country_of_origin') val = String(val).trim().toUpperCase();
   rfEdit = null;
-  insertEvent('set_field', { patch: { [k]: val } });
+  // Category / product type / country are item-level facts, never per-variant.
+  const itemLevel = ['item_type_keyword','amazon_product_type','country_of_origin'].includes(k);
+  insertEvent('set_field', itemLevel ? { patch: { [k]: val }, child_id: null } : { patch: { [k]: val } });
 }
 function commitTitle(){
   const val = (document.getElementById('ttl-in')?.value ?? '').trim();
