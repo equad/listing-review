@@ -185,6 +185,18 @@ textarea{min-height:70px;resize:vertical}
 .cdesc{color:var(--mut);font-size:13px;margin-top:3px}
 .cstat{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .cpill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px}
+/* campaign picker: wide, multi-column grid + search */
+#picker.center{max-width:1180px}
+#camplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+#camplist .campcard{margin-bottom:0;height:100%}
+.srchrow{display:flex;gap:10px;align-items:center;margin:0 0 14px}
+.srchrow input{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:14px}
+#itemhits{margin:0 0 16px}
+.hit{display:flex;gap:12px;align-items:baseline;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);margin-bottom:6px;cursor:pointer;font-size:13px}
+.hit:hover{border-color:var(--accent)}
+.hit .hc{color:var(--mut);font-size:12px;flex:none;min-width:150px}
+.hit .ht{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hit .hi{color:var(--mut);font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;flex:none}
 .cpill.todo{background:var(--chip-warn);color:var(--warn)}
 .cpill.live{background:var(--chip-ok);color:var(--ok)}
 .cpill.skip{background:var(--mono-bg);color:var(--mut)}
@@ -233,6 +245,11 @@ textarea{min-height:70px;resize:vertical}
     <input id="imp-link" placeholder="Paste a Google Drive folder link to create a new campaign… (folder must be shared: Anyone with the link)">
     <button id="btn-import">⤓ Import</button>
   </div>
+  <div class="srchrow">
+    <input id="camp-q" placeholder="Search campaigns and items — title, UPC, MPN, MSKU, ASIN, size, color…" autocomplete="off">
+    <span class="sub" id="camp-q-note"></span>
+  </div>
+  <div id="itemhits"></div>
   <div id="camplist"></div>
 </div>
 
@@ -330,10 +347,49 @@ async function boot(){
   campaigns = data;
   showPicker();
 }
+// Search index over every item in every campaign (title, MPN, UPC, MSKU,
+// ASIN, variant sizes/colors) - loaded once in the background after the
+// picker first shows, so searching a UPC finds the item even if you don't
+// remember which campaign it landed in.
+let ITEM_INDEX = null, ITEM_INDEX_LOADING = false;
+async function loadItemIndex(){
+  if (ITEM_INDEX || ITEM_INDEX_LOADING) return; ITEM_INDEX_LOADING = true;
+  const { data } = await sb.from('review_campaigns').select('key,title,data');
+  ITEM_INDEX = [];
+  for (const c of data || []) for (const d of (c.data || [])) {
+    const kids = (d.families?.[0]?.children || []).map(k => ({ size: k.size, color: k.color, upc: k.upc, sku: k.sku, mpn: k.mpn, asin: k.asin }));
+    const ids = [d.mpn, d.upc, d.sku, d.asin, ...kids.flatMap(k => [k.upc, k.sku, k.mpn, k.asin])].filter(Boolean).map(String);
+    const hay = [d.short_title, d.title, d.model_name, ...ids, ...kids.flatMap(k => [k.size, k.color])].filter(Boolean).join(' ').toLowerCase();
+    ITEM_INDEX.push({ key: c.key, camp: c.title, id: d.id, title: d.short_title || d.title, ids: [...new Set(ids)].slice(0, 6), hay });
+  }
+  ITEM_INDEX_LOADING = false;
+  if (document.getElementById('picker') && !document.getElementById('picker').classList.contains('hidden')) showPicker();
+}
 function showPicker(){
   show('picker');
   document.getElementById('whoami').textContent = email ?? '';
+  const qEl = document.getElementById('camp-q');
+  const q = (qEl?.value || '').trim().toLowerCase();
+  const toks = q.split(/\s+/).filter(Boolean);
+  const matches = (hay) => toks.every(t => hay.includes(t));
+  if (!ITEM_INDEX) loadItemIndex();
+  // item hits (only while searching)
+  const hitsEl = document.getElementById('itemhits');
+  const note = document.getElementById('camp-q-note');
+  let hitKeys = new Set();
+  if (toks.length && ITEM_INDEX){
+    const hits = ITEM_INDEX.filter(it => matches(it.hay)).slice(0, 30);
+    hitKeys = new Set(hits.map(h => h.key));
+    hitsEl.innerHTML = hits.map(h => `<div class="hit" data-k="${esc(h.key)}" data-id="${esc(h.id)}"><span class="hc">${esc(h.camp)}</span><span class="ht">${esc(h.title)}</span><span class="hi">${esc(h.ids.join(' · '))}</span></div>`).join('');
+    hitsEl.querySelectorAll('.hit').forEach(el => el.onclick = () => openCampaign(el.dataset.k, el.dataset.id));
+    if (note) note.textContent = `${hits.length}${hits.length === 30 ? '+' : ''} item${hits.length === 1 ? '' : 's'}`;
+  } else {
+    hitsEl.innerHTML = '';
+    if (note) note.textContent = toks.length && !ITEM_INDEX ? 'indexing items…' : '';
+  }
+  if (qEl && !qEl.oninput) qEl.oninput = () => showPicker();
   document.getElementById('camplist').innerHTML = [...campaigns]
+    .filter(c => !toks.length || matches(`${c.title} ${c.sub || ''} ${c.brand || ''} ${c.key}`.toLowerCase()) || hitKeys.has(c.key))
     .sort((a, b) => (a.archived ? 1 : 0) - (b.archived ? 1 : 0)).map(c => {
     const s = campStats[c.key];
     let stat = '';
@@ -409,7 +465,7 @@ async function deleteCampaign(key){
 }
 
 // ---------- campaign console ----------
-async function openCampaign(key){
+async function openCampaign(key, jumpToItemId = null){
   camp = campaigns.find(c => c.key === key);
   const [{ data: full }, { data: evs }] = await Promise.all([
     sb.from('review_campaigns').select('data').eq('key', key).single(),
@@ -418,6 +474,7 @@ async function openCampaign(key){
   DATA = full.data; events = evs ?? [];
   applyPatches();
   cur = 0; imgSel = 0; childSel = 0; clearDrafts();
+  if (jumpToItemId){ const ji = DATA.findIndex(d => d.id === jumpToItemId); if (ji >= 0) cur = ji; }
   document.getElementById('hdr-title').textContent = camp.title;
   document.getElementById('hdr-sub').textContent = (camp.sub || '') + ' · live console';
   show('console');
