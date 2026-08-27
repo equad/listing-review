@@ -440,6 +440,7 @@ function applyOne(ev){
     if (Array.isArray(p.images)) d.images = p.images;
     if (Array.isArray(p.families)) d.families = p.families;
     if (p.is_family !== undefined) d.is_family = !!p.is_family;
+    if (typeof p.short_title === 'string') d.short_title = p.short_title;
     // AI merged sibling items into this one's variation family - drop them from the list
     if (Array.isArray(p.remove_items) && p.remove_items.length){
       const curId = DATA[cur]?.id;
