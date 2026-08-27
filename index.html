@@ -643,7 +643,8 @@ function render(){
     ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}</div>
   <div class="meta">
     <div><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
-    <div><div class="k">UPC / mSKU</div><div class="v">${esc(mUpc)}</div></div>
+    <div><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
+    <div><div class="k">UPC</div><div class="v">${esc(kid ? (kid.upc||'—') : (parentView ? '—' : (d.upc||'—')))}</div></div>
     <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
     <div><div class="k">MSRP</div><div class="v">${money(d.msrp)}</div></div>
     <div><div class="k">Dealer cost</div><div class="v">${money(d.dealer_cost)}</div></div>
