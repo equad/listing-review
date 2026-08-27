@@ -86,6 +86,11 @@ main{flex:1;overflow-y:auto;padding:20px 22px 80px}
 .thumb{width:46px;height:46px;padding:2px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer}
 .thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .thumb.sel{border:2px solid var(--az-link);box-shadow:0 0 0 2px #C8E4EC}
+.thumbwrap{display:flex;flex-direction:column;align-items:center}
+.thumbops{display:flex;gap:2px;margin-top:2px}
+.thumbops button{font-size:9px;line-height:14px;padding:0 4px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#fff}
+.thumbops button:disabled{opacity:.35;cursor:default}
+.thumbadd{display:flex;align-items:center;justify-content:center;font-size:22px;color:#888;border-style:dashed}
 .mainimg{flex:1;border:1px solid var(--az-line);border-radius:6px;background:#fff;
   display:flex;align-items:center;justify-content:center;min-height:300px}
 .mainimg img{max-width:100%;max-height:420px;display:block}
@@ -281,7 +286,7 @@ const show = id => {
 let session = null, email = null;
 let campaigns = [], campStats = {}, camp = null, DATA = [], events = [];
 let cur = 0, imgSel = 0, childSel = 0, channel = null, rfEdit = null;
-let titleEdit = false, bulletEdit = -1;
+let titleEdit = false, bulletEdit = -1, descEdit = false;
 
 // ---------- auth ----------
 document.getElementById('btn-login').onclick = async () => {
@@ -676,7 +681,11 @@ function render(){
             <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
         }
       }
-      return `<div style="grid-column:span 2"><div class="k">Category · keyword ${esc(kw||'—')}${d.browse_node?' · confirmed at last validate':''}</div>${body}</div>`;
+      // one thin full-width line: label · path · type · keyword · controls
+      return `<div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center;min-height:0;padding:2px 0;font-size:12px;white-space:nowrap;overflow:hidden">
+        <span class="k" style="margin:0;flex:none">Category</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${body.replace(/<div class="v[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '')}</span>
+        <span class="sub" style="flex:none;opacity:.6">kw ${esc(kw||'—')}${d.browse_node?' · confirmed':''}</span></div>`;
     })()}
   </div>
   <div class="rfgrid">
@@ -701,7 +710,10 @@ function render(){
     <p class="mock-tag">Amazon detail page preview — generated copy${st==='revised'?' — REVISED':''}</p>
     <div class="cols">
       <div class="gallery">
-        <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>`).join('')}</div>
+        <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumbwrap"><div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>
+            <div class="thumbops"><button class="tup" data-i="${i}" title="Move earlier (first photo is the main image)" ${i===0?'disabled':''}>▲</button><button class="tdel" data-i="${i}" title="Remove this photo from the listing">✕</button></div></div>`).join('')}
+          <label class="thumb thumbadd" title="Add photos to this ${kid?'variant':'listing'}">＋<input type="file" accept="image/*" multiple hidden id="upl2"></label>
+          <div class="sub" id="upl2-status"></div></div>
         <div class="mainimg">${imgs.length?`<img src="${esc(imgs[imgSel])}" alt="">`:`<div class="noimg">No imagery yet<br>— needs photos before launch —<br><br>
           <label class="uplbtn">📷 Upload photos<input type="file" accept="image/*" multiple hidden id="upl"></label>
           <div class="sub" id="upl-status"></div></div>`}</div>
@@ -759,8 +771,10 @@ function render(){
         <div class="bb-line">Ships from &amp; sold by Bicycle Addiction</div>
       </div>
     </div>
-    <div class="desc-h">Product Description</div>
-    <div class="desc">${esc(d.description||'—')}</div>
+    <div class="desc-h">Product Description ${descEdit ? '' : '<button class="rfedit descedit" title="Edit description">✎</button>'}</div>
+    ${descEdit
+      ? `<div class="vedit desc-edit"><textarea id="desc-in" rows="9" style="width:100%;font:inherit;padding:8px">${esc(d.description||'')}</textarea><div style="margin-top:6px"><button class="descok">✓ Save</button> <button class="descx">✕ Cancel</button> <span class="sub">Blank line between paragraphs · Esc cancels</span></div></div>`
+      : `<div class="desc">${esc(d.description||'—')}</div>`}
   </div>
 
   <div class="panelrow">
@@ -825,6 +839,18 @@ function render(){
   if (chat) chat.onkeydown = e => { if (e.key === 'Enter') doChat(); };
   const upl = document.getElementById('upl');
   if (upl) upl.onchange = () => doUpload(upl.files);
+  const upl2 = document.getElementById('upl2');
+  if (upl2) upl2.onchange = () => doUpload(upl2.files);
+  // Gallery: remove / move earlier, applied to the selected variant or the item
+  const galEdit = (fn) => { const d0 = DATA[cur]; const k0 = currentChild(d0); const list = imagesFor(d0).slice(); fn(list); imgSel = 0; edit({ images: list }, k0 ? k0.id : null); };
+  document.querySelectorAll('.tdel').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (confirm('Remove this photo from the listing?')) galEdit(l => l.splice(i, 1)); });
+  document.querySelectorAll('.tup').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i > 0) galEdit(l => { [l[i-1], l[i]] = [l[i], l[i-1]]; }); });
+  // Description editor
+  const de = document.querySelector('.descedit');
+  if (de) de.onclick = () => { descEdit = true; render(); const t = document.getElementById('desc-in'); if (t) t.focus(); };
+  const dok = document.querySelector('.descok'); if (dok) dok.onclick = commitDesc;
+  const dx = document.querySelector('.descx'); if (dx) dx.onclick = () => { descEdit = false; render(); };
+  const din = document.getElementById('desc-in'); if (din) din.onkeydown = e => { if (e.key === 'Escape'){ descEdit = false; render(); } };
   document.querySelectorAll('.rfedit').forEach(b => b.onclick = () => {
     rfEdit = b.dataset.k; render();
     const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
@@ -901,12 +927,20 @@ function commitTitle(){
     const cur2 = kid.attrs?.child_title || d.title || d.short_title;
     if (val === cur2) { render(); return; }
     kid.attrs = kid.attrs || {}; kid.attrs.child_title = val;
-    insertEvent('revision', { patch: { child_title: val }, child_id: kid.id });
+    edit({ child_title: val }, kid.id);
   } else {
     if (val === d.title) { render(); return; }
     d.title = val;
-    insertEvent('revision', { patch: { title: val }, child_id: null });
+    edit({ title: val });
   }
+}
+function commitDesc(){
+  const val = (document.getElementById('desc-in')?.value ?? '').trim();
+  descEdit = false;
+  const d = DATA[cur];
+  if (!d || !val || val === (d.description||'')) { render(); return; }
+  d.description = val;
+  edit({ description: val });
 }
 function commitBullet(){
   if (bulletEdit < 0) return;
@@ -919,15 +953,15 @@ function commitBullet(){
   if (!val || !bo || val === bo.content) { render(); return; }
   bo.content = val;
   if (bo.child_id){
-    insertEvent('revision', { patch: { child_bullet: val }, child_id: bo.child_id });
+    edit({ child_bullet: val }, bo.child_id);
   } else {
     const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
-    insertEvent('revision', { patch: { bullets: tops.map(b => b.content) }, child_id: null });
+    edit({ bullets: tops.map(b => b.content) });
   }
 }
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
 function clearDrafts(){ for (const id of ['note','chat']){ const el = document.getElementById(id); if (el) el.value = ''; } }
-function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; clearDrafts(); render();
+function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; descEdit = false; clearDrafts(); render();
   document.querySelector('#console main').scrollTop = 0; }
 
 // ---------- actions ----------
@@ -939,6 +973,26 @@ async function insertEvent(kind, extra = {}){
   events.push({ ...row, id: data.id, actor: 'user', ts: new Date().toISOString() });
   render();
   return data.id;
+}
+async function callFnJson(name, body){
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token, 'apikey': ANON_KEY },
+    body: JSON.stringify(body),
+  });
+  try { return await res.json(); } catch { return { ok: false, error: 'HTTP ' + res.status }; }
+}
+// Direct edits (title, bullets, description, gallery) go through the launcher's
+// `edit` action: it applies the change to the campaign data and records the
+// revision event - the console itself may not insert revision rows (RLS).
+async function edit(patch, child_id = null){
+  const d = DATA[cur]; if (!d) return;
+  const res = await callFnJson('review-launch', { action: 'edit', campaign: camp.key, item_id: d.id, child_id, patch });
+  if (!res?.ok){ alert('Could not save: ' + (res?.error || 'unknown error')); render(); return; }
+  const ev = { id: res.event_id, campaign: camp.key, item_id: d.id, kind: 'revision', actor: 'user', actor_email: email,
+    child_id, patch: res.patch, ts: new Date().toISOString() };
+  if (!events.some(e => e.id === ev.id)) { events.push(ev); applyOne(ev); }
+  render();
 }
 async function callFn(name, body){
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
@@ -997,17 +1051,23 @@ async function doSkip(){
 }
 async function doUpload(files){
   const d = DATA[cur];
-  const stat = document.getElementById('upl-status');
+  const kid = currentChild(d);
+  const stat = document.getElementById('upl-status') || document.getElementById('upl2-status');
+  const added = [];
   for (const f of files){
     if (stat) stat.textContent = `uploading ${f.name}…`;
     const path = `uploads/${d.id}/${Date.now()}_${f.name.replace(/[^A-Za-z0-9._-]/g,'_')}`;
     const { error } = await sb.storage.from('product-images').upload(path, f);
     if (error){ if (stat) stat.textContent = 'upload failed: ' + error.message; return; }
-    const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`;
-    await insertEvent('upload', { path: url });
-    if (!d.images.includes(url)) d.images.push(url);
+    added.push(`${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`);
   }
-  imgSel = 0; render();
+  if (stat) stat.textContent = '';
+  if (!added.length) return;
+  // Appended to the selected variant's gallery (or the item's), max 9 - saved
+  // through the launcher's edit action so it reaches Amazon on the next push.
+  const list = [...imagesFor(d).filter(u => !added.includes(u)), ...added].slice(0, 9);
+  imgSel = Math.max(0, Math.min(8, list.length - added.length));
+  await edit({ images: list }, kid ? kid.id : null);
 }
 </script>
 </body>
