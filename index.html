@@ -911,7 +911,7 @@ function render(){
   const dok = document.querySelector('.descok'); if (dok) dok.onclick = commitDesc;
   const dx = document.querySelector('.descx'); if (dx) dx.onclick = () => { descEdit = false; render(); };
   const din = document.getElementById('desc-in'); if (din) din.onkeydown = e => { if (e.key === 'Escape'){ descEdit = false; render(); } };
-  document.querySelectorAll('.rfedit').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.rfedit:not(.descedit):not(.ttledit):not(.bltedit)').forEach(b => b.onclick = () => {
     rfEdit = b.dataset.k; render();
     const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
   });
