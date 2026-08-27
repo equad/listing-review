@@ -825,9 +825,12 @@ function render(){
     rfEdit = b.dataset.k; render();
     const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
   });
+  // Dry run against Amazon (VALIDATION_PREVIEW, nothing published, no approval
+  // recorded): the only authoritative source of "what this category still
+  // needs" - Amazon's category rules are not in the public product-type schema.
   document.querySelectorAll('.ptcheck').forEach(b => b.onclick = () => {
-    b.disabled = true; b.textContent = '… asking Amazon';
-    callFn('review-launch', { action: 'pt_requirements', campaign: camp.key, item_id: DATA[cur].id });
+    b.disabled = true; b.textContent = '… checking with Amazon';
+    callFn('review-launch', { action: 'validate', campaign: camp.key, item_id: DATA[cur].id }).then(refreshData);
   });
   const rfOk = document.querySelector('.rfok');
   if (rfOk) rfOk.onclick = commitRf;
