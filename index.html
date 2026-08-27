@@ -390,7 +390,8 @@ function showPicker(){
   if (qEl && !qEl.oninput) qEl.oninput = () => showPicker();
   document.getElementById('camplist').innerHTML = [...campaigns]
     .filter(c => !toks.length || matches(`${c.title} ${c.sub || ''} ${c.brand || ''} ${c.key}`.toLowerCase()) || hitKeys.has(c.key))
-    .sort((a, b) => (a.archived ? 1 : 0) - (b.archived ? 1 : 0)).map(c => {
+    // newest first; "done" (archived) campaigns sink to the bottom in their own date order
+    .sort((a, b) => ((a.archived ? 1 : 0) - (b.archived ? 1 : 0)) || (String(b.updated_at||'').localeCompare(String(a.updated_at||'')))).map(c => {
     const s = campStats[c.key];
     let stat = '';
     if (s && s.total){
@@ -406,7 +407,9 @@ function showPicker(){
       <button class="cact done" data-done="${esc(c.key)}">${c.archived ? '↩ Reopen' : '✓ Done'}</button>
       <button class="cact del" data-del="${esc(c.key)}">🗑 Delete</button>
     </div>`;
-    return `<div class="campcard${c.archived ? ' archived' : ''}" data-k="${esc(c.key)}">${acts}<div class="cname">${esc(c.title)}${c.archived ? ' <span class="cpill skip">archived</span>' : ''}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}</div>`;
+    const when = c.updated_at ? new Date(c.updated_at) : null;
+    const stamp = when ? `${when.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : '';
+    return `<div class="campcard${c.archived ? ' archived' : ''}" data-k="${esc(c.key)}">${acts}<div class="cname">${esc(c.title)}${c.archived ? ' <span class="cpill skip">done</span>' : ''}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}${stamp ? `<div class="cdesc" style="margin-top:8px;font-size:11.5px">🕒 ${esc(stamp)}</div>` : ''}</div>`;
   }).join('');
   document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
   document.querySelectorAll('.cact[data-done]').forEach(el => el.onclick = (e) => { e.stopPropagation(); toggleDone(el.dataset.done); });
