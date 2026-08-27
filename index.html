@@ -624,7 +624,8 @@ function render(){
   const fam0 = d.families?.[0];
   const parentView = d.is_family && !kid && fam0;
   const mMpn = kid?.mpn || d.mpn;
-  const mUpc = kid ? kid.upc : (parentView ? fam0.parent_sku : d.upc);
+  // Merchant SKU (catalog MSKU when we already stock it, else the UPC)
+  const mUpc = kid ? (kid.sku || kid.upc) : (parentView ? fam0.parent_sku : (d.sku || d.upc));
   const mAsin = kid ? kid.asin : (parentView ? (fam0.parent_asin || '') : d.asin);
 
   // Thread scroll: pin to bottom on item change or when already near the bottom;
