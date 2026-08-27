@@ -671,7 +671,7 @@ function render(){
           const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
           const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
           const also = pts.filter(p => p !== pt);
-          body = `<div class="v">${esc(short)} <span style="opacity:.65">· ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
+          body = `<div class="v">${esc(short)} <span style="opacity:.65" title="Amazon product type = the attribute schema this listing is created with; set by the browse node your keyword maps to">· Amazon type: ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
             <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
             <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
         }
