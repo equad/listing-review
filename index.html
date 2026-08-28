@@ -243,7 +243,7 @@ textarea{min-height:70px;resize:vertical}
 
 <div id="picker" class="center hidden">
   <h2 style="margin:0 0 4px">Campaigns</h2>
-  <p class="sub" style="margin:0 0 18px">Pick a review. <span id="whoami"></span> · <button class="homelink" id="btn-logout">Sign out</button></p>
+  <p class="sub" style="margin:0 0 18px">Pick a review. <span id="whoami"></span> · <button class="homelink" id="btn-logout">Sign out</button> · <span id="home-conn"></span></p>
   <div class="importrow">
     <input id="imp-link" placeholder="Paste a Google Drive folder link to create a new campaign… (folder must be shared: Anyone with the link)">
     <button id="btn-import">⤓ Import</button>
@@ -372,9 +372,32 @@ async function loadItemIndex(){
   ITEM_INDEX_LOADING = false;
   if (document.getElementById('picker') && !document.getElementById('picker').classList.contains('hidden')) showPicker();
 }
+// Home page stays live: any event insert (status changes, chat, ASIN
+// back-fill) or campaign row change (import progress, archive, title) refreshes
+// the cards after a short debounce; a 60s poll covers dropped sockets.
+let homeChannel = null, homeTimer = null;
+function pickerVisible(){ const p = document.getElementById('picker'); return p && !p.classList.contains('hidden'); }
+function homeRefresh(){
+  clearTimeout(homeTimer);
+  homeTimer = setTimeout(() => { if (pickerVisible()) refreshCampaigns(); }, 700);
+}
+function watchHome(){
+  if (homeChannel) return;
+  homeChannel = sb.channel('home')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'review_events' }, homeRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'review_campaigns' }, homeRefresh)
+    .subscribe(st => {
+      const el = document.getElementById('home-conn'); if (!el) return;
+      el.textContent = st === 'SUBSCRIBED' ? '● live' : '○ ' + st.toLowerCase();
+      el.style.color = st === 'SUBSCRIBED' ? 'var(--ok)' : 'var(--mut)';
+    });
+  setInterval(() => { if (pickerVisible() && !document.hidden) refreshCampaigns(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && pickerVisible()) refreshCampaigns(); });
+}
 function showPicker(){
   show('picker');
   document.getElementById('whoami').textContent = email ?? '';
+  watchHome();
   const qEl = document.getElementById('camp-q');
   const q = (qEl?.value || '').trim().toLowerCase();
   const toks = q.split(/\s+/).filter(Boolean);
