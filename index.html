@@ -34,6 +34,7 @@ h1{font-size:16.5px;margin:0;letter-spacing:-.01em}
 .count.ok{background:var(--chip-ok);color:var(--ok)}
 .count.warn{background:var(--chip-warn);color:var(--warn)}
 .count.acc{background:var(--chip-acc);color:var(--accent)}
+.count.bad{background:var(--chip-bad);color:var(--bad)}
 button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 13px}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
@@ -200,6 +201,8 @@ textarea{min-height:70px;resize:vertical}
 .cpill.todo{background:var(--chip-warn);color:var(--warn)}
 .cpill.live{background:var(--chip-ok);color:var(--ok)}
 .cpill.skip{background:var(--mono-bg);color:var(--mut)}
+.cpill.pend{background:var(--chip-acc);color:var(--accent)}
+.cpill.err{background:var(--chip-bad);color:var(--bad)}
 .cbar{margin-top:8px;height:6px;border-radius:99px;background:var(--mono-bg);overflow:hidden;display:flex}
 .cbar .fill{background:var(--ok);height:100%}
 .campcard{position:relative}
@@ -244,6 +247,8 @@ textarea{min-height:70px;resize:vertical}
   <div class="importrow">
     <input id="imp-link" placeholder="Paste a Google Drive folder link to create a new campaign… (folder must be shared: Anyone with the link)">
     <button id="btn-import">⤓ Import</button>
+    <button id="btn-sync-asins" title="Pull ASINs Amazon assigned to listings we created (runs hourly too)">↻ Sync ASINs</button>
+    <span class="sub" id="sync-note"></span>
   </div>
   <div class="srchrow">
     <input id="camp-q" placeholder="Search campaigns and items — title, UPC, MPN, MSKU, ASIN, size, color…" autocomplete="off">
@@ -264,6 +269,8 @@ textarea{min-height:70px;resize:vertical}
   <span class="count" id="c-total"></span>
   <span class="count acc" id="c-togo"></span>
   <span class="count warn" id="c-rev"></span>
+  <span class="count acc" id="c-pend"></span>
+  <span class="count bad" id="c-err"></span>
   <span class="count ok" id="c-live"></span>
   <span id="conn" class="sub"></span>
 </header>
@@ -334,7 +341,7 @@ async function boot(){
     sb.from('review_campaigns')
       .select('key,title,sub,brand,group_field,updated_at,archived')
       .order('sort_order', { ascending: true }),
-    sb.from('review_campaign_stats').select('key,total,live,skipped'),
+    sb.from('review_campaign_stats').select('*'),
   ]);
   campStats = Object.fromEntries((statsQ.data || []).map(s => [s.key, s]));
   if (error || !data?.length) {
@@ -399,6 +406,8 @@ function showPicker(){
       stat = `<div class="cstat">
         ${left > 0 ? `<span class="cpill todo">⚑ ${left} left to review</span>` : `<span class="cpill live">✓ all done</span>`}
         <span class="cpill live">${s.live} live</span>
+        ${s.pending > 0 ? `<span class="cpill pend">◔ ${s.pending} pending</span>` : ''}
+        ${s.error > 0 ? `<span class="cpill err">✗ ${s.error} error${s.error === 1 ? '' : 's'}</span>` : ''}
         ${s.skipped > 0 ? `<span class="cpill skip">${s.skipped} skipped</span>` : ''}
       </div>
       <div class="cbar"><span class="fill" style="width:${(s.live / Math.max(1, s.total - s.skipped) * 100).toFixed(1)}%"></span></div>`;
@@ -412,6 +421,14 @@ function showPicker(){
     return `<div class="campcard${c.archived ? ' archived' : ''}" data-k="${esc(c.key)}">${acts}<div class="cname">${esc(c.title)}${c.archived ? ' <span class="cpill skip">done</span>' : ''}</div><div class="cdesc">${esc(c.sub||'')}</div>${stat}${stamp ? `<div class="cdesc" style="margin-top:8px;font-size:11.5px">🕒 ${esc(stamp)}</div>` : ''}</div>`;
   }).join('');
   document.querySelectorAll('.campcard[data-k]').forEach(el => el.onclick = () => openCampaign(el.dataset.k));
+  const syncBtn = document.getElementById('btn-sync-asins');
+  if (syncBtn && !syncBtn.onclick) syncBtn.onclick = async () => {
+    const note = document.getElementById('sync-note');
+    syncBtn.disabled = true; note.textContent = 'checking Amazon for new ASINs…';
+    const r = await callFnJson('review-launch', { action: 'backfill_asins' });
+    syncBtn.disabled = false;
+    note.textContent = r?.ok ? (r.updated?.length ? `recorded ${r.updated.length}: ${r.updated.join(' · ')}` : `no new ASINs (${r.checked} SKU${r.checked===1?'':'s'} checked)`) : ('failed: ' + (r?.error || 'unknown'));
+  };
   document.querySelectorAll('.cact[data-done]').forEach(el => el.onclick = (e) => { e.stopPropagation(); toggleDone(el.dataset.done); });
   document.querySelectorAll('.cact[data-del]').forEach(el => el.onclick = (e) => { e.stopPropagation(); deleteCampaign(el.dataset.del); });
   const impBtn = document.getElementById('btn-import');
@@ -422,7 +439,7 @@ async function refreshCampaigns(){
     sb.from('review_campaigns')
       .select('key,title,sub,brand,group_field,updated_at,archived')
       .order('sort_order', { ascending: true }),
-    sb.from('review_campaign_stats').select('key,total,live,skipped'),
+    sb.from('review_campaign_stats').select('*'),
   ]);
   campStats = Object.fromEntries((statsQ.data || []).map(s => [s.key, s]));
   if (data) campaigns = data;
@@ -595,6 +612,9 @@ function renderNav(){
   const togo = DATA.length - sts.filter(s=>s==='live').length - sts.filter(s=>s==='skipped').length;
   document.getElementById('c-togo').textContent = `${togo} to go`;
   document.getElementById('c-rev').textContent = `${sts.filter(s=>s==='revising'||s==='revised').length} in revision · ${sts.filter(s=>s==='skipped').length} skipped`;
+  const nPend = sts.filter(s=>['ready','validating','launching'].includes(s)).length, nErr = sts.filter(s=>s==='needs_info').length;
+  document.getElementById('c-pend').textContent = `${nPend} pending`; document.getElementById('c-pend').style.display = nPend ? '' : 'none';
+  document.getElementById('c-err').textContent = `${nErr} error${nErr===1?'':'s'}`; document.getElementById('c-err').style.display = nErr ? '' : 'none';
   document.getElementById('c-live').textContent = `${sts.filter(s=>s==='live').length} live`;
 }
 function flagsFor(d){
@@ -602,7 +622,7 @@ function flagsFor(d){
   if (d.map_missing) f.push(['warn','MAP missing — MSRP used as List Price, needs confirmation']);
   if (/lithium|battery/i.test(d.notes||'')) f.push(['bad','Li-ion battery — Dangerous Goods fields must NOT default to N/A']);
   if (!(d.images||[]).length) f.push(['bad','No product imagery — Amazon requires a main image']);
-  if (d.amazon_status === 'live' && d.asin) f.push(['ok','Live on Amazon · ' + d.asin]);
+  if (d.asin) f.push(['ok', (d.amazon_status === 'existing' ? 'Existing ASIN · ' : 'Live on Amazon · ') + d.asin]);
   else f.push(['info','Not yet on Amazon']);
   if (d.is_family) f.push(['info','Variant family']);
   return f;
