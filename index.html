@@ -708,7 +708,7 @@ function render(){
   const imgs = imagesFor(d);
   imgSel = Math.min(imgSel, Math.max(0, imgs.length-1));
   const theme = d.families?.[0]?.theme || '';
-  const price = d.price ?? kid?.attrs?.msrp ?? d.msrp;
+  const price = kid?.attrs?.price ?? kid?.attrs?.msrp ?? d.price ?? d.msrp;
   const st = itemStatus(d.id);
   const busy = ['revising','launching','validating'].includes(st);
   const noteVal = document.getElementById('note')?.value ?? '';
@@ -866,7 +866,7 @@ function render(){
       </div>
       <div class="buybox">
         <div class="price"><sup>$</sup>${price!=null?Number(price).toFixed(2):'—'}</div>
-        <div class="bb-line">${d.price?`Live offer price (MSRP ${money(d.msrp)})`:`List Price — MSRP${d.map_missing?' (MAP missing)':''}`}</div>
+        <div class="bb-line">${price!=null && d.msrp && Number(price) < Number(d.msrp) ? `Offer price${(kid?.attrs?.map ?? d.map)?' (MAP)':''} · List Price / MSRP ${money(kid?.attrs?.msrp ?? d.msrp)}` : `List Price — MSRP${d.map_missing?' (no MAP — selling at MSRP)':''}`}</div>
         <div class="bb-line">FREE Returns</div>
         <div class="bb-line" style="color:#1E7B45">In Stock</div>
         <button class="bb-btn bb-cart">Add to Cart</button>
