@@ -146,6 +146,11 @@ textarea{min-height:70px;resize:vertical}
 .askopt{display:block;width:100%;text-align:left;margin:4px 0;padding:7px 10px;border:1px solid var(--warn);border-radius:8px;background:var(--mono-bg);color:inherit;cursor:pointer;font-size:13px;font-weight:600}
 .askopt:hover{filter:brightness(.96)}
 .msg.ask .sub{margin-top:4px}
+.ovrlab{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--warn);cursor:pointer;user-select:none}
+.ovrrow{margin-top:6px}
+.ovrrow input{width:100%;border-color:var(--warn)}
+.msg.user.ovr{background:var(--warn)}
+.msg .ovrtag{font-size:10.5px;font-weight:700;opacity:.85;margin-top:3px}
 .msg .who{font-size:10.5px;opacity:.75;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
 .chatrow{display:flex;gap:8px;margin-top:8px}
 .chatrow input{flex:1}
@@ -701,6 +706,9 @@ function threadHTML(d){
       if (e.kind==='upload') return `<div class="msg user"><div class="who">${esc(who)}</div>📷 Uploaded a photo</div>`;
       if (e.kind==='confirm_live') return `<div class="msg sys">— 🚀 Live push confirmed by ${esc(who)} —</div>`;
       if (e.kind==='set_field') return `<div class="msg sys">— ⚙ ${esc(who)} set ${esc(Object.keys(e.patch||{}).map(k=>k==='prop65'?('Prop 65 '+((e.patch||{}).prop65?'ON':'OFF')):k.replace(/_/g,' ')).join(', '))} —</div>`;
+      if (e.kind==='revise' && e.patch && e.patch.override){
+        return `<div class="msg user ovr"><div class="who">${esc(who)} · ⚠ override</div>${esc(e.text||'')}<div class="ovrtag">Reason: ${esc(e.patch.override.reason||'')} · recorded ${esc(String(e.ts||'').slice(0,10))}</div></div>`;
+      }
       const label = e.kind==='approve' ? '✔ Approved for launch' + (e.text?': ':'') : e.kind==='revise' ? '✎ Change request: ' : '';
       return `<div class="msg user"><div class="who">${esc(who)}</div>${esc(label)}${esc(e.text||'')}</div>`;
     }
@@ -729,6 +737,8 @@ function render(){
   const st = itemStatus(d.id);
   const busy = ['revising','launching','validating'].includes(st);
   const noteVal = document.getElementById('note')?.value ?? '';
+  const ovrCk = document.getElementById('ovr-ck')?.checked ?? false;
+  const ovrVal = document.getElementById('ovr-reason')?.value ?? '';
   const chatVal = document.getElementById('chat')?.value ?? '';
   const fBase = fieldsFor(d.id);
   const fKid = kid ? fieldsFor(d.id, kid.id) : {};
@@ -913,8 +923,10 @@ function render(){
     <h3>Review &amp; launch</h3>
     ${threadHTML(d)}
     <textarea id="note" placeholder="Change request (AI revises the listing live) — or notes with your approval">${esc(noteVal)}</textarea>
+    ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
     <div class="decide">
       <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
+      <label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
       ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
@@ -1132,11 +1144,19 @@ document.addEventListener('click', async ev => {
   const id = await insertEvent('revise', { text: o.say || o.label });
   if (id) callFn('review-ai', { event_id: id });
 });
+document.addEventListener('change', e => { if (e.target && e.target.id === 'ovr-ck') render(); });
 async function doRevise(){
   const note = document.getElementById('note').value.trim();
   if (!note){ document.getElementById('note').focus(); return; }
+  // Override: strict rules stay on for the AI; the exception is an explicit,
+  // recorded act - reviewer name + reason ride the revise event (audit trail)
+  // and the claim is filed as a reviewer-attested fact on the item.
+  const ovr = document.getElementById('ovr-ck')?.checked ?? false;
+  const reason = (document.getElementById('ovr-reason')?.value || '').trim();
+  if (ovr && !reason){ document.getElementById('ovr-reason')?.focus(); return; }
   document.getElementById('note').value = '';
-  const id = await insertEvent('revise', { text: note });
+  if (ovr) document.getElementById('ovr-ck').checked = false;
+  const id = await insertEvent('revise', { text: note, ...(ovr ? { patch: { override: { reason } } } : {}) });
   if (id) callFn('review-ai', { event_id: id });
 }
 async function doChat(){
