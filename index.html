@@ -739,6 +739,14 @@ function render(){
   const noteVal = document.getElementById('note')?.value ?? '';
   const ovrCk = document.getElementById('ovr-ck')?.checked ?? false;
   const ovrVal = document.getElementById('ovr-reason')?.value ?? '';
+  // The override control only appears when the AI's LATEST message refused
+  // for lack of evidence (structured evidence_blocked flag; wording fallback
+  // covers refusals from before the flag existed). It disappears again once
+  // the conversation moves on.
+  const lastAi = [...itemEvents(d.id)].reverse().find(e => e.actor==='ai' && e.kind==='chat');
+  const ovrAvail = !!lastAi && (
+    (lastAi.patch && lastAi.patch.evidence_blocked === true) ||
+    /can'?t put that|cannot verify|can'?t verify|no source|not backed by|lacks? (the )?evidence|nothing in our folder/i.test(lastAi.text||''));
   const chatVal = document.getElementById('chat')?.value ?? '';
   const fBase = fieldsFor(d.id);
   const fKid = kid ? fieldsFor(d.id, kid.id) : {};
@@ -926,7 +934,7 @@ function render(){
     ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
     <div class="decide">
       <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
-      <label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>
+      ${(ovrAvail||ovrCk)?`<label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>`:''}
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
       ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
