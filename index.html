@@ -557,6 +557,9 @@ function applyOne(ev){
     }
     if (Array.isArray(p.images)) d.images = p.images;
     if (Array.isArray(p.families)) d.families = p.families;
+    if (Array.isArray(p.remove_variants) && p.remove_variants.length){
+      d.bullets = (d.bullets||[]).filter(b => !b.child_id || !p.remove_variants.includes(b.child_id));
+    }
     if (p.is_family !== undefined) d.is_family = !!p.is_family;
     if (typeof p.short_title === 'string') d.short_title = p.short_title;
     // AI merged sibling items into this one's variation family - drop them from the list
