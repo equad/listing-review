@@ -665,7 +665,14 @@ function flagsFor(d){
   return f;
 }
 function kidsFor(d){
-  const kids = (d.families?.[0]?.children || []).slice();
+  // Effective variants: a size/color override set on the variant (chat or the
+  // fields panel) IS its name - the launcher sends the override, so the chips
+  // must show it too, not the raw imported record.
+  const kids = (d.families?.[0]?.children || []).map(k => {
+    const f = fieldsFor(d.id, k.id);
+    const size = (f.size ?? k.size), color = (f.color ?? k.color);
+    return (size === k.size && color === k.color) ? k : { ...k, size, color };
+  });
   const key = k => k.size || k.color || k.sku || '';
   return kids.sort((a,b) => {
     const na = parseFloat(key(a)), nb = parseFloat(key(b));
