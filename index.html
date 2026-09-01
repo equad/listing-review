@@ -154,6 +154,31 @@ textarea{min-height:70px;resize:vertical}
 .msg .who{font-size:10.5px;opacity:.75;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
 .chatrow{display:flex;gap:8px;margin-top:8px}
 .chatrow input{flex:1}
+[hidden]{display:none!important}
+/* item view: content column + pinned review-chat dock */
+.work{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+.content{min-width:0}
+.dock{position:sticky;top:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;height:calc(100vh - 74px);min-height:340px;overflow:hidden}
+.dock.big{height:calc(100vh - 30px)}
+.dockhead{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);font-weight:700;flex:none}
+.dockhead button{font-size:13px;padding:1px 7px;line-height:1.2}
+.dock .thread{flex:1;min-height:0;max-height:none;margin:0;padding:10px 12px;overflow-y:auto}
+.dock .msg{font-size:12.5px;max-width:94%;padding:7px 10px}
+.composer{border-top:1px solid var(--line);padding:8px 10px 10px;flex:none;background:var(--card)}
+.modebar{display:flex;gap:4px;margin-bottom:6px}
+.modebtn{font-size:11.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer}
+.modebtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.composer textarea{min-height:58px;font-size:12.5px}
+.composer .chatrow{margin-top:0}
+.sendrow{display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}
+.actions button{font-size:12.5px;padding:5px 11px}
+.rfgrid>div .v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.rfgrid>div.open .v{white-space:normal;overflow:visible;text-overflow:clip}
+.rfgrid>div .vedit{cursor:auto}
+.mock{padding:18px 20px 22px}
+.panelrow{margin-bottom:12px}
+@media(max-width:1180px){.work{grid-template-columns:1fr}.dock{position:static;height:auto;max-height:52vh}.dock.big{max-height:none}.dock .thread{max-height:34vh}}
 .statuschip{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;padding:6px 15px;border-radius:99px;background:var(--mono-bg);color:var(--mut)}
 .statuschip.revising,.statuschip.launching,.statuschip.validating,.statuschip.revised{background:var(--st-warn);color:#fff}
 .statuschip.needs_info{background:var(--st-bad);color:#fff}
@@ -163,7 +188,7 @@ textarea{min-height:70px;resize:vertical}
 .statuschip.answered{background:var(--st-ans);color:#fff}
 .topbar{position:sticky;top:-20px;z-index:4;background:var(--bg);padding-top:20px;margin-top:-20px;
   box-shadow:0 8px 10px -10px rgba(0,0,0,.25)}
-.rfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--line);
+.rfgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);
   border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:0 0 4px}
 .rfgrid>div{background:var(--card);padding:3px 9px}
 .rfgrid .k{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);font-weight:700}
@@ -664,6 +689,9 @@ function flagsFor(d){
   if (d.is_family) f.push(['info','Variant family']);
   return f;
 }
+// review-dock composer mode, dock size and which data cells are expanded
+let composeMode = 'revise', dockBig = false;
+const rfOpen = new Set();
 function kidsFor(d){
   // Effective variants: a size/color override set on the variant (chat or the
   // fields panel) IS its name - the launcher sends the override, so the chips
@@ -788,6 +816,7 @@ function render(){
   const oldPos = oldTh ? oldTh.scrollTop : 0;
 
   document.getElementById('view').innerHTML = `
+  <div class="work"><div class="content">
   <div class="topbar">
   <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}
     ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}</div>
@@ -840,15 +869,26 @@ function render(){
         return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
       }
       if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div class="${v?'':'missv'}"><div class="k">${lab}</div><div class="v">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+      return `<div class="${v?'':'missv'} ${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
     ${rfEdit === 'prop65'
       ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
       : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
     ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
       if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div><div class="k">${lab}</div><div class="v">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+      return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
   </div>
-  <div class="rfhint">Click ✎ to edit a field directly (✓ saves, Esc cancels) — or ask in chat: “set color to Black”, “set all variants to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
+  <div class="rfhint">Click a value to expand it, ✎ to edit (✓ saves, Esc cancels) — or ask in the chat: “set color to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
+  <div class="actions">
+    <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
+    ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
+    ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
+    ${st==='skipped'
+      ? '<button id="btn-skip">▶ Resume</button>'
+      : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip for now</button>`}
+    <span style="flex:1"></span>
+    <button class="ghost" id="btn-prev">← Prev</button>
+    <button class="ghost" id="btn-next">Next →</button>
+  </div>
   </div>
 
   <div class="mock">
@@ -934,29 +974,29 @@ function render(){
     </div>
   </div>
 
-  <div class="panel">
-    <h3>Review &amp; launch</h3>
+  </div>
+  <aside class="dock ${dockBig?'big':''}">
+    <div class="dockhead"><span>Review chat</span><button class="ghost" id="dock-big" title="${dockBig?'Shrink':'Expand'} the chat">${dockBig?'⤡':'⤢'}</button></div>
     ${threadHTML(d)}
-    <textarea id="note" placeholder="Change request (AI revises the listing live) — or notes with your approval">${esc(noteVal)}</textarea>
-    ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
-    <div class="decide">
-      <button id="btn-changes" ${busy?'disabled':''}>✎ Request AI changes</button>
-      ${(ovrAvail||ovrCk)?`<label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>`:''}
-      <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
-      ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
-      ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
-      ${st==='skipped'
-        ? '<button id="btn-skip">▶ Resume</button>'
-        : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip for now</button>`}
+    <div class="composer">
+      <div class="modebar">
+        <button class="modebtn ${composeMode==='revise'?'on':''}" data-m="revise">✎ Change request</button>
+        <button class="modebtn ${composeMode==='chat'?'on':''}" data-m="chat">💬 Ask</button>
+      </div>
+      <div ${composeMode==='revise'?'':'hidden'}>
+        <textarea id="note" placeholder="Tell the AI what to change — it revises the listing live">${esc(noteVal)}</textarea>
+        ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
+        <div class="sendrow">
+          <button class="primary" id="btn-changes" ${busy?'disabled':''}>Send change request</button>
+          ${(ovrAvail||ovrCk)?`<label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>`:''}
+        </div>
+      </div>
+      <div class="chatrow" ${composeMode==='chat'?'':'hidden'}>
+        <input type="text" id="chat" placeholder="Ask the AI about this item…" value="${esc(chatVal)}">
+        <button class="primary" id="btn-chat">Send</button>
+      </div>
     </div>
-    <div class="chatrow">
-      <input type="text" id="chat" placeholder="Chat with the AI about this item…" value="${esc(chatVal)}">
-      <button class="primary" id="btn-chat">Send</button>
-    </div>
-    <div class="decide">
-      <button id="btn-prev">← Previous</button>
-      <button id="btn-next">Next item →</button>
-    </div>
+  </aside>
   </div>`;
 
   document.querySelectorAll('.thumb').forEach(t => t.onclick = () => { imgSel = +t.dataset.i; render(); });
@@ -1160,6 +1200,13 @@ document.addEventListener('click', async ev => {
   if (id) callFn('review-ai', { event_id: id });
 });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'ovr-ck') render(); });
+document.addEventListener('click', e => {
+  const mb = e.target.closest('.modebtn');
+  if (mb){ composeMode = mb.dataset.m; render(); setTimeout(() => document.getElementById(composeMode === 'revise' ? 'note' : 'chat')?.focus(), 0); return; }
+  if (e.target.closest('#dock-big')){ dockBig = !dockBig; render(); return; }
+  const cell = e.target.closest('.rfgrid>div[data-rf]');
+  if (cell && !e.target.closest('button,input')){ const k = cell.dataset.rf; rfOpen.has(k) ? rfOpen.delete(k) : rfOpen.add(k); cell.classList.toggle('open'); }
+});
 async function doRevise(){
   const note = document.getElementById('note').value.trim();
   if (!note){ document.getElementById('note').focus(); return; }
