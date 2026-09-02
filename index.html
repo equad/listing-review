@@ -50,8 +50,8 @@ nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px
 .railtag{width:100%;display:flex;align-items:center;gap:4px;margin-top:3px;flex:none}
 .railtag .t{font-size:7.5px;letter-spacing:.04em;color:var(--mut);font-weight:700;white-space:nowrap;max-width:46px;overflow:hidden}
 .railtag i{height:1px;flex:1;background:var(--line)}
-.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;position:relative;flex:none}
-.railbox img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:var(--mono-bg);cursor:pointer;position:relative;flex:none}
+.railbox img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block;padding:2px}
 .railbox .rdot{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:99px;border:2px solid var(--card)}
 .railbox.sel{outline:2px solid var(--ink);outline-offset:2px}
 .railbox.st-live{border-color:var(--st-live);box-shadow:0 0 8px 1px var(--st-live)}
@@ -67,7 +67,7 @@ nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px
 .railbox.st-skipped{opacity:.35}
 #navfly{position:absolute;left:64px;top:0;bottom:0;width:272px;background:var(--card);border-right:1px solid var(--line);
   box-shadow:14px 0 30px -12px rgba(0,0,0,.4);overflow-y:auto;z-index:7;padding:4px 0 30px}
-#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:cover;background:#fff;border:1px solid var(--line);flex:none}
+#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:contain;background:var(--mono-bg);border:1px solid var(--line);flex:none}
 .navgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 5px}
 .navitem{display:flex;gap:9px;align-items:center;padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
 .navitem:hover{background:var(--mono-bg)}
@@ -710,9 +710,12 @@ function tagOf(label){
   return (w[0].slice(0, 4) + '·' + w.slice(1, 3).map(x => x[0]).join('')).toUpperCase();
 }
 function railThumb(d){
+  // Cutout-first: background-stripped PNG (cutouts/rail/<id>.png, generated
+  // via SnipMat) on a theme tile; falls back to the raw first photo.
   const u = (d.images || [])[0];
-  return u ? `<img src="${esc(u)}" alt="" loading="lazy">`
-           : `<span style="display:grid;place-items:center;height:100%;color:#999;font-size:15px">▦</span>`;
+  if (!u) return `<span style="display:grid;place-items:center;height:100%;color:#999;font-size:15px">▦</span>`;
+  const cut = `${SUPABASE_URL}/storage/v1/object/public/product-images/cutouts/rail/${d.id}.png`;
+  return `<img src="${cut}" onerror="this.onerror=null;this.src='${esc(u)}'" alt="" loading="lazy">`;
 }
 function renderNav(){
   // Collapsed thumbnail rail: real product photo per item, status = glow,
