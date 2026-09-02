@@ -103,6 +103,7 @@ main{flex:1;overflow:hidden;padding:12px 22px 0;display:flex;flex-direction:colu
 .thumb.sel{border:2px solid var(--az-link);box-shadow:0 0 0 2px #C8E4EC}
 .thumbwrap{display:flex;flex-direction:column;align-items:center;cursor:grab}
 .thumbwrap.drophint .thumb{outline:2px dashed var(--az-link);outline-offset:2px}
+.matchord{font-size:9.5px;line-height:1.25;padding:4px 4px;width:52px;color:#565959;background:#fff;border-color:#ccc}
 .thumbops{display:flex;gap:2px;margin-top:2px}
 .thumbops button{font-size:9px;line-height:14px;padding:0 4px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#fff}
 .thumbops button:disabled{opacity:.35;cursor:default}
@@ -950,6 +951,7 @@ function render(){
         <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumbwrap" data-i="${i}" draggable="true" title="Drag to reorder — first photo is the main image"><div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>
             <div class="thumbops"><button class="tup" data-i="${i}" title="Move earlier (first photo is the main image)" ${i===0?'disabled':''}>▲</button><button class="tdel" data-i="${i}" title="Remove this photo from the listing">✕</button></div></div>`).join('')}
           <label class="thumb thumbadd" title="Add photos to this ${kid?'variant':'listing'}">＋<input type="file" accept="image/*" multiple hidden id="upl2"></label>
+          ${d.is_family && kids.length ? `<button class="ghost matchord" title="Reorder every variant's gallery to follow the parent's photo order (matched by filename; variant-only photos keep their place at the end)">⇅ Parent<br>order</button>` : ''}
           <div class="sub" id="upl2-status"></div></div>
         <div class="mainimg">${imgs.length?`<img src="${esc(imgs[imgSel])}" alt="">`:`<div class="noimg">No imagery yet<br>— needs photos before launch —<br><br>
           <label class="uplbtn">📷 Upload photos<input type="file" accept="image/*" multiple hidden id="upl"></label>
@@ -1076,6 +1078,8 @@ function render(){
   const galEdit = (fn) => { const d0 = DATA[cur]; const k0 = currentChild(d0); const list = imagesFor(d0).slice(); fn(list); imgSel = 0; edit({ images: list }, k0 ? k0.id : null); };
   document.querySelectorAll('.tdel').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (confirm('Remove this photo from the listing?')) galEdit(l => l.splice(i, 1)); });
   document.querySelectorAll('.tup').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i > 0) galEdit(l => { [l[i-1], l[i]] = [l[i], l[i-1]]; }); });
+  const mo = document.querySelector('.matchord');
+  if (mo) mo.onclick = () => doMatchOrder(mo);
   // Drag a thumbnail onto another to move it there (arrows still work too)
   let dragIdx = null;
   document.querySelectorAll('.thumbwrap[data-i]').forEach(w => {
@@ -1348,6 +1352,27 @@ async function doSkip(){
   document.getElementById('note').value = '';
   await insertEvent(skipped ? 'unskip' : 'skip', { text: note || null });
   if (!skipped && cur+1 < DATA.length) go(cur+1);
+}
+async function doMatchOrder(btn){
+  const d = DATA[cur]; const fam = d.families?.[0]; if (!fam?.children?.length) return;
+  if (btn){ btn.disabled = true; btn.textContent = '…'; }
+  const base = u => String(u).split('?')[0].split('/').pop().toLowerCase();
+  const order = (d.images || []).map(base);
+  const pos = u => { const i = order.indexOf(base(u)); return i < 0 ? 999 : i; };
+  let changed = 0;
+  for (const k of fam.children){
+    const imgs = (k.attrs?.images || []);
+    if (imgs.length < 2) continue;
+    const sorted = imgs.map((u, i) => [u, pos(u), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
+    if (JSON.stringify(sorted) !== JSON.stringify(imgs)){
+      const res = await callFnJson('review-launch', { action: 'edit', campaign: camp.key, item_id: d.id, child_id: k.id, patch: { images: sorted } });
+      if (res?.ok) changed++;
+    }
+  }
+  await refreshData();
+  if (btn){ btn.disabled = false; btn.innerHTML = '⇅ Parent<br>order'; }
+  alert(changed ? `Matched ${changed} variant galler${changed === 1 ? 'y' : 'ies'} to the parent's photo order.`
+                : 'All variant galleries already follow the parent order.');
 }
 async function doUpload(files){
   const d = DATA[cur];
