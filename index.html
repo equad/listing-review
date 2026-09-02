@@ -1075,9 +1075,19 @@ function render(){
   const upl2 = document.getElementById('upl2');
   if (upl2) upl2.onchange = () => doUpload(upl2.files);
   // Gallery: remove / move earlier, applied to the selected variant or the item
-  const galEdit = (fn) => { const d0 = DATA[cur]; const k0 = currentChild(d0); const list = imagesFor(d0).slice(); fn(list); imgSel = 0; edit({ images: list }, k0 ? k0.id : null); };
+  // After a reorder the highlight follows the photo that was acted on
+  // (or the current selection); after a delete it clamps to a neighbour.
+  const galEdit = (fn, followUrl = null) => {
+    const d0 = DATA[cur]; const k0 = currentChild(d0);
+    const list = imagesFor(d0).slice();
+    const selUrl = followUrl ?? list[imgSel];
+    fn(list);
+    const ni = list.indexOf(selUrl);
+    imgSel = ni >= 0 ? ni : Math.min(imgSel, Math.max(0, list.length - 1));
+    edit({ images: list }, k0 ? k0.id : null);
+  };
   document.querySelectorAll('.tdel').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (confirm('Remove this photo from the listing?')) galEdit(l => l.splice(i, 1)); });
-  document.querySelectorAll('.tup').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i > 0) galEdit(l => { [l[i-1], l[i]] = [l[i], l[i-1]]; }); });
+  document.querySelectorAll('.tup').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i > 0){ const u = imagesFor(DATA[cur])[i]; galEdit(l => { [l[i-1], l[i]] = [l[i], l[i-1]]; }, u); } });
   const mo = document.querySelector('.matchord');
   if (mo) mo.onclick = () => doMatchOrder(mo);
   // Drag a thumbnail onto another to move it there (arrows still work too)
@@ -1091,7 +1101,8 @@ function render(){
     w.ondrop = e => { e.preventDefault(); w.classList.remove('drophint');
       if (dragIdx == null || dragIdx === i) return;
       const from = dragIdx; dragIdx = null;
-      galEdit(l => { const [m] = l.splice(from, 1); l.splice(i, 0, m); });
+      const u = imagesFor(DATA[cur])[from];
+      galEdit(l => { const [m] = l.splice(from, 1); l.splice(i, 0, m); }, u);
     };
   });
   // Description editor
