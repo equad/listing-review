@@ -165,6 +165,7 @@ textarea{min-height:70px;resize:vertical}
 .work45{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,26%);gap:12px;flex:1;min-height:0}
 .centercol{min-width:0;display:flex;flex-direction:column;min-height:0}
 .pintop{flex:none;padding-bottom:4px}
+.pinsum{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px 2px 4px}
 .scrollpane{flex:1;min-height:0;overflow-y:auto;padding-bottom:50px;scrollbar-width:thin}
 .actbar{position:sticky;top:0;z-index:5;box-shadow:0 8px 12px -10px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
   border-radius:10px;padding:7px 12px;margin-bottom:10px}
@@ -721,6 +722,7 @@ function flagsFor(d){
 }
 // review-dock composer mode, dock size and which data cells are expanded
 let composeMode = 'revise';
+let pinOpen = (() => { try { return localStorage.getItem('pin-open') !== '0'; } catch { return true; } })();
 const rfOpen = new Set();
 function kidsFor(d){
   // Effective variants: a size/color override set on the variant (chat or the
@@ -859,11 +861,14 @@ function render(){
         : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip</button>`}
       <button class="ghost" id="btn-prev" title="Previous item">←</button>
       <button class="ghost" id="btn-next" title="Next item">→</button>
+      <button class="ghost" id="pin-tgl" title="${pinOpen?'Collapse':'Expand'} the pinned product data">${pinOpen?'▾ Data':'▸ Data'}</button>
       ${flagsFor(d).map(([c,t])=>`<span class="flag ${c}" title="${esc(t)}">${esc(t.length>42?t.slice(0,40)+'…':t)}</span>`).join('')}`;
   document.getElementById('view').innerHTML = `
   <div class="work45">
   <div class="centercol">
   <div class="pintop">
+  ${pinOpen?'':`<div class="pinsum">MPN ${esc(mMpn)} · MSKU ${esc(mUpc)} · ASIN ${mAsin?esc(mAsin):'—'} · ${esc(rfVal('brand'))} · Size ${esc(rfVal('size')||'—')} · ${esc(rfVal('material')||'')} · ${esc(rfVal('color')||'')} — ▸ Data in the top bar reopens the full grid</div>`}
+  <div ${pinOpen?'':'hidden'}>
   <div class="meta">
     <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
     <div data-rf="_msku"><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
@@ -918,6 +923,7 @@ function render(){
     ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
       if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
       return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+  </div>
   </div>
   </div>
   <div class="scrollpane">
@@ -1042,6 +1048,7 @@ function render(){
   bind('btn-changes', doRevise);
   bind('btn-skip', doSkip);
   bind('btn-chat', doChat);
+  bind('pin-tgl', () => { pinOpen = !pinOpen; try { localStorage.setItem('pin-open', pinOpen ? '1' : '0'); } catch {} render(); });
   bind('btn-prev', () => go(cur-1));
   bind('btn-next', () => go(cur+1));
   const chat = document.getElementById('chat');
