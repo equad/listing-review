@@ -49,33 +49,9 @@ button.golive{background:var(--warn);border-color:var(--warn);color:#fff;font-we
 button.ghost{background:transparent}
 button:disabled{opacity:.5;cursor:default}
 .layout{display:flex;flex:1;min-height:0;position:relative}
-nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--line);background:var(--card);
-  padding:8px 5px 30px;display:flex;flex-direction:column;align-items:center;gap:6px;scrollbar-width:thin}
-.railexp{width:42px;height:30px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut);cursor:pointer;font-size:14px;background:var(--mono-bg);flex:none}
-.railexp:hover{border-color:var(--accent);color:var(--accent)}
-.railtag{width:100%;display:flex;align-items:center;gap:4px;margin-top:3px;flex:none}
-.railtag .t{font-size:7.5px;letter-spacing:.04em;color:var(--mut);font-weight:700;white-space:nowrap;max-width:46px;overflow:hidden}
-.railtag i{height:1px;flex:1;background:var(--line)}
-.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:radial-gradient(circle at 35% 30%, var(--thumb-bg), var(--thumb-bg2));cursor:pointer;position:relative;flex:none}
-.railbox img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block;padding:2px}
-.railbox .rdot{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:99px;border:2px solid var(--card)}
-.railbox.sel{outline:2px solid var(--ink);outline-offset:2px}
-.railbox.st-live{border-color:var(--st-live);box-shadow:0 0 8px 1px var(--st-live)}
-.railbox.st-live .rdot{background:var(--st-live)}
-.railbox.st-ready{border-color:var(--st-ready);box-shadow:0 0 8px 1px var(--st-ready)}
-.railbox.st-ready .rdot{background:var(--st-ready)}
-.railbox.st-needs_info{border-color:var(--st-bad);box-shadow:0 0 8px 1px var(--st-bad)}
-.railbox.st-needs_info .rdot{background:var(--st-bad)}
-.railbox.st-answered{border-color:var(--st-ans);box-shadow:0 0 8px 1px var(--st-ans)}
-.railbox.st-answered .rdot{background:var(--st-ans)}
-.railbox.st-revising,.railbox.st-revised,.railbox.st-validating,.railbox.st-launching{border-color:var(--st-warn);box-shadow:0 0 8px 1px var(--st-warn);animation:pulse 1.2s infinite}
-.railbox.st-revising .rdot,.railbox.st-revised .rdot,.railbox.st-validating .rdot,.railbox.st-launching .rdot{background:var(--st-warn)}
-.railbox.st-skipped{opacity:.35}
-#navfly{position:absolute;left:64px;top:0;bottom:0;width:272px;background:var(--card);border-right:1px solid var(--line);
-  box-shadow:14px 0 30px -12px rgba(0,0,0,.4);overflow-y:auto;z-index:7;padding:4px 0 30px}
-#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:contain;background:radial-gradient(circle at 35% 30%, var(--thumb-bg), var(--thumb-bg2));border:1px solid var(--line);flex:none}
-.navgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 5px}
-.navitem{display:flex;gap:9px;align-items:center;padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
+nav{width:172px;min-width:172px;overflow-y:auto;border-right:1px solid var(--line);background:var(--card);padding:6px 0 30px;scrollbar-width:thin}
+.navgroup{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:10px 12px 3px}
+.navitem{display:flex;gap:8px;align-items:center;padding:5px 12px;cursor:pointer;border-left:3px solid transparent}
 .navitem:hover{background:var(--mono-bg)}
 .navitem.sel{border-left-color:var(--accent);background:var(--mono-bg)}
 .navitem .dot{width:14px;height:14px;border-radius:99px;background:var(--line);flex:none}
@@ -88,7 +64,7 @@ nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px
 .navitem.st-skipped .dot{background:var(--mut)}
 .navitem.st-answered .dot{background:var(--st-ans);box-shadow:0 0 8px var(--st-ans)}
 @keyframes pulse{50%{opacity:.35}}
-.navitem .nm{font-size:13px;line-height:1.3;flex:1}
+.navitem .nm{font-size:12px;line-height:1.25;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .navitem .pr{font-size:11.5px;color:var(--mut)}
 main{flex:1;overflow-y:auto;padding:20px 22px 80px}
 .wrap{max-width:1560px;margin:0 auto}
@@ -186,13 +162,14 @@ textarea{min-height:70px;resize:vertical}
 .chatrow input{flex:1}
 [hidden]{display:none!important}
 /* ★4.5 Full Column: rail | preview center | all-fields data column | chat rail */
-.work45{display:grid;grid-template-columns:minmax(0,1fr) 300px minmax(290px,25%);gap:12px;align-items:start}
+.work45{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,26%);gap:12px;align-items:start}
 .centercol{min-width:0}
 .actbar{position:sticky;top:0;z-index:5;box-shadow:0 8px 12px -10px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
   border-radius:10px;padding:7px 12px;margin-bottom:10px}
 .actbar button{font-size:12.5px;padding:5px 11px}
 .actbar .statuschip{font-size:12.5px;padding:4px 12px}
-.datacol,.chatcol{position:sticky;top:0;max-height:calc(100vh/var(--z,1) - 92px);overflow-y:auto;scrollbar-width:thin}
+.chatcol{position:sticky;top:0;max-height:calc(100vh/var(--z,1) - 92px);overflow-y:auto;scrollbar-width:thin}
+.pinband{position:sticky;top:-20px;z-index:5;background:var(--bg);padding:2px 0 5px;margin:-2px 0 6px;box-shadow:0 10px 12px -12px rgba(0,0,0,.4)}
 .chatcol{background:var(--card);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;
   height:calc(100vh/var(--z,1) - 92px)}
 .chatcol .thread{flex:1;min-height:0;max-height:none;margin:0;padding:8px 12px;overflow-y:auto}
@@ -351,6 +328,7 @@ textarea{min-height:70px;resize:vertical}
     <h1 id="hdr-title">Listing Review</h1>
     <div class="sub" id="hdr-sub"></div>
   </div>
+  <span id="hdr-actions" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
   <div class="spacer"></div>
   <span class="count" id="c-total"></span>
   <span class="count acc" id="c-togo"></span>
@@ -362,7 +340,6 @@ textarea{min-height:70px;resize:vertical}
 </header>
 <div class="layout">
   <nav id="nav"></nav>
-  <div id="navfly" class="hidden"></div>
   <main><div class="wrap" id="view"></div></main>
 </div>
 </div>
@@ -710,43 +687,17 @@ function grouped(){
   DATA.forEach((d,i) => { const k = d[gf] || 'Other'; if (!m.has(k)) m.set(k, []); m.get(k).push([d,i]); });
   return [...m.entries()];
 }
-function tagOf(label){
-  const w = String(label).replace(/[^A-Za-z ]/g, ' ').trim().split(/\s+/).filter(Boolean);
-  if (!w.length) return '—';
-  if (w.length === 1) return w[0].slice(0, 5).toUpperCase();
-  return (w[0].slice(0, 4) + '·' + w.slice(1, 3).map(x => x[0]).join('')).toUpperCase();
-}
-function railThumb(d){
-  // Cutout-first: background-stripped PNG (cutouts/rail/<id>.png, generated
-  // via SnipMat) on a theme tile; falls back to the raw first photo.
-  const u = (d.images || [])[0];
-  if (!u) return `<span style="display:grid;place-items:center;height:100%;color:#999;font-size:15px">▦</span>`;
-  const cut = `${SUPABASE_URL}/storage/v1/object/public/product-images/cutouts/rail/${d.id}.png`;
-  return `<img src="${cut}" onerror="this.onerror=null;this.src='${esc(u)}'" alt="" loading="lazy">`;
-}
 function renderNav(){
-  // Collapsed thumbnail rail: real product photo per item, status = glow,
-  // white/ink ring = current item, hairline tags keep the category groups.
+  // Words-only rail: big glowing status dot + name, grouped by the campaign's
+  // own sections. No pictures, no prices, campaign-only (home is in the header).
   const el = document.getElementById('nav');
-  el.innerHTML = `<div class="railexp" id="railexp" title="Show the item list (or hover)">⟩</div>` +
-    grouped().map(([label, items]) =>
-      `<div class="railtag" title="${esc(label)}"><i></i><span class="t">${esc(tagOf(label))}</span><i></i></div>` +
-      items.map(([d,i]) => {
-        const st = itemStatus(d.id);
-        return `<div class="railbox ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}" title="${esc(d.short_title || d.title || '')}${st?' · '+esc(ST_LABEL[st]||st):''}">${railThumb(d)}<span class="rdot"></span></div>`;
-      }).join('')).join('');
-  el.querySelectorAll('.railbox').forEach(n => n.onclick = () => go(+n.dataset.i));
-  // Flyout: the full list, campaign-only (no campaigns back-link here - that
-  // lives in the header). Overlays the work; nothing reflows.
-  const fly = document.getElementById('navfly');
-  fly.innerHTML = `<div class="navgroup" style="padding-top:8px">${DATA.length} items · this campaign only</div>` +
-    grouped().map(([label, items]) =>
-      `<div class="navgroup">${esc(label)}</div>` + items.map(([d,i]) => {
-        const st = itemStatus(d.id);
-        return `<div class="navitem ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}">
-          ${railThumb(d)}<span class="nm">${esc(d.short_title)}</span><span class="dot"></span></div>`;
-      }).join('')).join('');
-  fly.querySelectorAll('.navitem').forEach(n => n.onclick = () => { fly.classList.add('hidden'); go(+n.dataset.i); });
+  el.innerHTML = grouped().map(([label, items]) =>
+    `<div class="navgroup">${esc(label)}</div>` + items.map(([d,i]) => {
+      const st = itemStatus(d.id);
+      return `<div class="navitem ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}" title="${esc(d.short_title||'')}${st?' · '+esc(ST_LABEL[st]||st):''}">
+        <span class="dot"></span><span class="nm">${esc(d.short_title)}</span></div>`;
+    }).join('')).join('');
+  el.querySelectorAll('.navitem').forEach(n => n.onclick = () => go(+n.dataset.i));
   const sts = DATA.map(d => itemStatus(d.id));
   document.getElementById('c-total').textContent = `${DATA.length} items`;
   const togo = DATA.length - sts.filter(s=>s==='live').length - sts.filter(s=>s==='skipped').length;
@@ -897,22 +848,78 @@ function render(){
     oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 40;
   const oldPos = oldTh ? oldTh.scrollTop : 0;
 
+  document.getElementById('hdr-actions').innerHTML = `
+      ${st?`<span class="statuschip ${st}" style="font-size:12px;padding:3px 11px">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}
+      <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
+      ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live</button>`:''}
+      ${st==='live'?`<button id="btn-verify">🔍 Verify</button>`:''}
+      ${st==='skipped'
+        ? '<button id="btn-skip">▶ Resume</button>'
+        : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip</button>`}
+      <button class="ghost" id="btn-prev" title="Previous item">←</button>
+      <button class="ghost" id="btn-next" title="Next item">→</button>`;
   document.getElementById('view').innerHTML = `
   <div class="work45">
   <div class="centercol">
-  <div class="actbar">
-      ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}
-      <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
-      ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
-      ${st==='live'?`<button id="btn-verify">🔍 Verify on Amazon</button>`:''}
-      ${st==='skipped'
-        ? '<button id="btn-skip">▶ Resume</button>'
-        : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip for now</button>`}
-      <span style="flex:1"></span>
-      <button class="ghost" id="btn-prev">← Prev</button>
-      <button class="ghost" id="btn-next">Next →</button>
-  </div>
   <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}</div>
+  <div class="pinband">
+  <div class="meta">
+    <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
+    <div data-rf="_msku"><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
+    <div data-rf="_upc"><div class="k">UPC</div><div class="v">${esc(kid ? (kid.upc||'—') : (parentView ? '—' : (d.upc||'—')))}</div></div>
+    <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
+    <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
+    ${(() => {
+      const kw = String(fKid.item_type_keyword ?? fBase.item_type_keyword ?? '').trim();
+      const po = String(fKid.amazon_product_type ?? fBase.amazon_product_type ?? '').trim().toUpperCase();
+      if (!BTG) loadBTG();
+      let body;
+      if (rfEdit === 'item_type_keyword'){
+        const opts = BTG ? Object.entries(BTG.by_keyword).sort().map(([k,ids]) =>
+          `<option value="${esc(k)}">${esc(((BTG.nodes[ids[0]]||{}).path||'').replace(/^.*?Cycling\s*>\s*/,''))}</option>`).join('') : '';
+        body = `<div class="vedit"><input type="text" id="rf-in" list="kwlist" value="${esc(kw)}" placeholder="type to search Cycling categories…"><button class="rfok">✓</button><button class="rfx">✕</button></div><datalist id="kwlist">${opts}</datalist>`;
+      } else if (!kw){
+        body = `<div class="v" style="color:var(--bad)">not set — Amazon would guess the category <button class="rfedit" data-k="item_type_keyword">✎ pick</button></div>`;
+      } else if (!BTG){
+        body = `<div class="v">${esc(kw)} · ${BTGfailed ? 'category tree unavailable' : 'loading tree…'}</div>`;
+      } else {
+        const ids = BTG.by_keyword?.[kw]; const node = ids && BTG.nodes[ids[0]];
+        if (!node) body = `<div class="v" style="color:var(--bad)">⚠ "${esc(kw)}" is not in Amazon's Cycling tree — this would list OUTSIDE Cycling <button class="rfedit" data-k="item_type_keyword">✎</button></div>`;
+        else {
+          const pts = node.product_types || [];
+          const pt = po || pts[0] || '?';
+          const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
+          const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
+          const also = pts.filter(p => p !== pt);
+          body = `<div class="v">${esc(short)} <span style="opacity:.65" title="Amazon product type = the attribute schema this listing is created with; set by the browse node your keyword maps to">· Amazon type: ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
+            <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
+            <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
+        }
+      }
+      // one thin full-width line: label · path · type · keyword · controls
+      return `<div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center;min-height:0;padding:2px 0;font-size:12px;white-space:nowrap;overflow:hidden">
+        <span class="k" style="margin:0;flex:none">Category</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${body.replace(/<div class="v[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '')}</span>
+        <span class="sub" style="flex:none;opacity:.6">kw ${esc(kw||'—')}${d.browse_node?' · confirmed':''}</span></div>`;
+    })()}
+  </div>
+  <div class="rfgrid">
+    ${RF.map(([k,lab])=>{ const v = rfVal(k);
+      if (parentView && (k==='size' || k==='model_number')){
+        const note = k==='size' ? 'not needed' : (v ? esc(v) : (kids[0]?.mpn ? esc(String(kids[0].mpn)) + ' · from 1st variant' : 'not needed'));
+        return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
+      }
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div class="${v?'':'missv'} ${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+    ${rfEdit === 'prop65'
+      ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
+      : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
+    ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+  </div>
+  <div class="rfhint">Click a value to expand it, ✎ to edit (✓ saves, Esc cancels) — or ask in the chat: “set color to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
+  </div>
 
   <div class="mock">
     <p class="mock-tag">Amazon detail page preview — generated copy${st==='revised'?' — REVISED':''}</p>
@@ -988,65 +995,6 @@ function render(){
     </div>
   </div>
 
-  </div>
-  <div class="datacol">
-  <div class="dc-h">Product data — ${kid?'this variant':'this listing'}</div>
-  <div class="meta">
-    <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
-    <div data-rf="_msku"><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
-    <div data-rf="_upc"><div class="k">UPC</div><div class="v">${esc(kid ? (kid.upc||'—') : (parentView ? '—' : (d.upc||'—')))}</div></div>
-    <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
-    <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
-    ${(() => {
-      const kw = String(fKid.item_type_keyword ?? fBase.item_type_keyword ?? '').trim();
-      const po = String(fKid.amazon_product_type ?? fBase.amazon_product_type ?? '').trim().toUpperCase();
-      if (!BTG) loadBTG();
-      let body;
-      if (rfEdit === 'item_type_keyword'){
-        const opts = BTG ? Object.entries(BTG.by_keyword).sort().map(([k,ids]) =>
-          `<option value="${esc(k)}">${esc(((BTG.nodes[ids[0]]||{}).path||'').replace(/^.*?Cycling\s*>\s*/,''))}</option>`).join('') : '';
-        body = `<div class="vedit"><input type="text" id="rf-in" list="kwlist" value="${esc(kw)}" placeholder="type to search Cycling categories…"><button class="rfok">✓</button><button class="rfx">✕</button></div><datalist id="kwlist">${opts}</datalist>`;
-      } else if (!kw){
-        body = `<div class="v" style="color:var(--bad)">not set — Amazon would guess the category <button class="rfedit" data-k="item_type_keyword">✎ pick</button></div>`;
-      } else if (!BTG){
-        body = `<div class="v">${esc(kw)} · ${BTGfailed ? 'category tree unavailable' : 'loading tree…'}</div>`;
-      } else {
-        const ids = BTG.by_keyword?.[kw]; const node = ids && BTG.nodes[ids[0]];
-        if (!node) body = `<div class="v" style="color:var(--bad)">⚠ "${esc(kw)}" is not in Amazon's Cycling tree — this would list OUTSIDE Cycling <button class="rfedit" data-k="item_type_keyword">✎</button></div>`;
-        else {
-          const pts = node.product_types || [];
-          const pt = po || pts[0] || '?';
-          const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
-          const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
-          const also = pts.filter(p => p !== pt);
-          body = `<div class="v">${esc(short)} <span style="opacity:.65" title="Amazon product type = the attribute schema this listing is created with; set by the browse node your keyword maps to">· Amazon type: ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
-            <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
-            <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
-        }
-      }
-      // one thin full-width line: label · path · type · keyword · controls
-      return `<div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center;min-height:0;padding:2px 0;font-size:12px;white-space:nowrap;overflow:hidden">
-        <span class="k" style="margin:0;flex:none">Category</span>
-        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${body.replace(/<div class="v[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '')}</span>
-        <span class="sub" style="flex:none;opacity:.6">kw ${esc(kw||'—')}${d.browse_node?' · confirmed':''}</span></div>`;
-    })()}
-  </div>
-  <div class="rfgrid">
-    ${RF.map(([k,lab])=>{ const v = rfVal(k);
-      if (parentView && (k==='size' || k==='model_number')){
-        const note = k==='size' ? 'not needed' : (v ? esc(v) : (kids[0]?.mpn ? esc(String(kids[0].mpn)) + ' · from 1st variant' : 'not needed'));
-        return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
-      }
-      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div class="${v?'':'missv'} ${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
-    ${rfEdit === 'prop65'
-      ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
-      : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
-    ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
-      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
-  </div>
-  <div class="rfhint">Click a value to expand it, ✎ to edit (✓ saves, Esc cancels) — or ask in the chat: “set color to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
   </div>
   <div class="chatcol">
     ${threadHTML(d)}
@@ -1272,17 +1220,6 @@ document.addEventListener('click', async ev => {
   if (id) callFn('review-ai', { event_id: id });
 });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'ovr-ck') render(); });
-// Rail flyout: hover the rail (or click ⟩) to overlay the full item list;
-// it closes when the pointer leaves. The work area never reflows.
-{
-  const navEl = document.getElementById('nav'), flyEl = document.getElementById('navfly');
-  let openT = null;
-  navEl.addEventListener('mouseenter', () => { openT = setTimeout(() => { if (camp) flyEl.classList.remove('hidden'); }, 160); });
-  navEl.addEventListener('mouseleave', () => { clearTimeout(openT);
-    setTimeout(() => { if (!flyEl.matches(':hover') && !navEl.matches(':hover')) flyEl.classList.add('hidden'); }, 300); });
-  flyEl.addEventListener('mouseleave', () => flyEl.classList.add('hidden'));
-  document.addEventListener('click', e => { if (e.target.closest('#railexp')) flyEl.classList.toggle('hidden'); });
-}
 // Theme: auto (follow system) -> dark -> light, stored per browser.
 function applyTheme(){
   let t = null; try { t = localStorage.getItem('ui-theme'); } catch {}
