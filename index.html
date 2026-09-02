@@ -882,7 +882,7 @@ function render(){
   <div class="work45">
   <div class="centercol">
   <div class="pintop">
-  ${pinOpen?'':`<div class="pinsum"><span>MPN ${esc(mMpn)} · MSKU ${esc(mUpc)} · ASIN ${mAsin?esc(mAsin):'—'} · ${esc(rfVal('brand'))} · Size ${esc(rfVal('size')||'—')} · ${esc(rfVal('material')||'')} · ${esc(rfVal('color')||'')}</span><button class="ghost" id="pin-tgl" title="Expand the product data" style="margin-left:auto;flex:none">▸ Data</button></div>`}
+  ${pinOpen?'':`<div class="pinsum"><span>MPN ${esc(mMpn)} · MSKU ${esc(mUpc)} · ASIN ${mAsin?esc(mAsin):'—'} · ${esc(rfVal('brand'))} · Size ${esc(rfVal('size')||'—')} · ${esc(rfVal('material')||'')} · ${esc(rfVal('color')||'')}</span><button class="ghost" id="pin-tgl" title="Expand the product data" style="flex:none">▸ Data</button></div>`}
   <div ${pinOpen?'':'hidden'}>
   <div class="meta">
     <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
