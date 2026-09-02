@@ -10,7 +10,7 @@
   --accent:#2F6B8F; --ok:#1E7B45; --warn:#9A6700; --bad:#B3261E;
   --chip-ok:#E3F2E9; --chip-warn:#FBF0DA; --chip-bad:#FBE3E1; --mono-bg:#F0F2F4;
   --az-ink:#0F1111; --az-link:#007185; --az-price:#B12704; --az-line:#E7E7E7;
-  --ans:#6B4FAE; --chip-ans:#ECE5F7; --chip-acc:#E3EDF4;
+  --ans:#6B4FAE; --chip-ans:#ECE5F7; --chip-acc:#E3EDF4; --thumb-bg:#E9ECEF; --thumb-bg2:#D8DCE1;
   --st-live:#00C853; --st-warn:#FFAB00; --st-bad:#FF3B30; --st-ready:#2E9BFF; --st-ans:#A868FF;
 }
 @media (prefers-color-scheme: dark){
@@ -18,7 +18,7 @@
     --bg:#16181B; --ink:#E6E8EB; --mut:#9AA3AD; --card:#1F2226;
     --line:#33383E; --accent:#6FA8CC; --ok:#57B380; --warn:#D9A03F; --bad:#E58B84;
     --chip-ok:#20372B; --chip-warn:#3A3021; --chip-bad:#3D2523; --mono-bg:#26292E;
-    --ans:#A98FE0; --chip-ans:#332A45; --chip-acc:#23303B;
+    --ans:#A98FE0; --chip-ans:#332A45; --chip-acc:#23303B; --thumb-bg:#5A626D; --thumb-bg2:#41474F;
   }
 }
 *{box-sizing:border-box}
@@ -50,7 +50,7 @@ nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px
 .railtag{width:100%;display:flex;align-items:center;gap:4px;margin-top:3px;flex:none}
 .railtag .t{font-size:7.5px;letter-spacing:.04em;color:var(--mut);font-weight:700;white-space:nowrap;max-width:46px;overflow:hidden}
 .railtag i{height:1px;flex:1;background:var(--line)}
-.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:var(--mono-bg);cursor:pointer;position:relative;flex:none}
+.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:radial-gradient(circle at 35% 30%, var(--thumb-bg), var(--thumb-bg2));cursor:pointer;position:relative;flex:none}
 .railbox img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block;padding:2px}
 .railbox .rdot{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:99px;border:2px solid var(--card)}
 .railbox.sel{outline:2px solid var(--ink);outline-offset:2px}
@@ -67,7 +67,7 @@ nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px
 .railbox.st-skipped{opacity:.35}
 #navfly{position:absolute;left:64px;top:0;bottom:0;width:272px;background:var(--card);border-right:1px solid var(--line);
   box-shadow:14px 0 30px -12px rgba(0,0,0,.4);overflow-y:auto;z-index:7;padding:4px 0 30px}
-#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:contain;background:var(--mono-bg);border:1px solid var(--line);flex:none}
+#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:contain;background:radial-gradient(circle at 35% 30%, var(--thumb-bg), var(--thumb-bg2));border:1px solid var(--line);flex:none}
 .navgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 5px}
 .navitem{display:flex;gap:9px;align-items:center;padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
 .navitem:hover{background:var(--mono-bg)}
