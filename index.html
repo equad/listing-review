@@ -182,7 +182,7 @@ textarea{min-height:70px;resize:vertical}
 /* ★4.5 Full Column: rail | preview center | all-fields data column | chat rail */
 .work45{display:grid;grid-template-columns:minmax(0,1fr) 300px minmax(290px,25%);gap:12px;align-items:start}
 .centercol{min-width:0}
-.actbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+.actbar{position:sticky;top:0;z-index:5;box-shadow:0 8px 12px -10px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
   border-radius:10px;padding:7px 12px;margin-bottom:10px}
 .actbar button{font-size:12.5px;padding:5px 11px}
 .actbar .statuschip{font-size:12.5px;padding:4px 12px}
