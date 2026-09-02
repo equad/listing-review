@@ -587,13 +587,26 @@ async function deleteCampaign(key){
 }
 
 // ---------- campaign console ----------
+// Supabase caps every select at 1000 rows; a busy campaign has more, and an
+// ascending fetch silently drops the NEWEST events - items then show stale
+// statuses (e.g. stuck on "Validating..."). Page until the last short page.
+async function allEvents(key){
+  const out = [];
+  for (let from = 0;; from += 1000){
+    const { data } = await sb.from('review_events').select('*').eq('campaign', key)
+      .order('ts').order('id').range(from, from + 999);
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
 async function openCampaign(key, jumpToItemId = null){
   camp = campaigns.find(c => c.key === key);
-  const [{ data: full }, { data: evs }] = await Promise.all([
+  const [{ data: full }, evs] = await Promise.all([
     sb.from('review_campaigns').select('data').eq('key', key).single(),
-    sb.from('review_events').select('*').eq('campaign', key).order('ts'),
+    allEvents(key),
   ]);
-  DATA = full.data; events = evs ?? [];
+  DATA = full.data; events = evs;
   applyPatches();
   cur = 0; imgSel = 0; childSel = 0; clearDrafts();
   if (jumpToItemId){ const ji = DATA.findIndex(d => d.id === jumpToItemId); if (ji >= 0) cur = ji; }
