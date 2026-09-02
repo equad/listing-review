@@ -42,8 +42,32 @@ button.approve{background:var(--ok);border-color:var(--ok);color:#fff;font-weigh
 button.golive{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
 button.ghost{background:transparent}
 button:disabled{opacity:.5;cursor:default}
-.layout{display:flex;flex:1;min-height:0}
-nav{width:295px;min-width:295px;overflow-y:auto;border-right:1px solid var(--line);background:var(--card);padding:8px 0 30px}
+.layout{display:flex;flex:1;min-height:0;position:relative}
+nav{width:64px;min-width:64px;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--line);background:var(--card);
+  padding:8px 5px 30px;display:flex;flex-direction:column;align-items:center;gap:6px;scrollbar-width:thin}
+.railexp{width:42px;height:30px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut);cursor:pointer;font-size:14px;background:var(--mono-bg);flex:none}
+.railexp:hover{border-color:var(--accent);color:var(--accent)}
+.railtag{width:100%;display:flex;align-items:center;gap:4px;margin-top:3px;flex:none}
+.railtag .t{font-size:7.5px;letter-spacing:.04em;color:var(--mut);font-weight:700;white-space:nowrap;max-width:46px;overflow:hidden}
+.railtag i{height:1px;flex:1;background:var(--line)}
+.railbox{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;position:relative;flex:none}
+.railbox img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.railbox .rdot{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:99px;border:2px solid var(--card)}
+.railbox.sel{outline:2px solid var(--ink);outline-offset:2px}
+.railbox.st-live{border-color:var(--st-live);box-shadow:0 0 8px 1px var(--st-live)}
+.railbox.st-live .rdot{background:var(--st-live)}
+.railbox.st-ready{border-color:var(--st-ready);box-shadow:0 0 8px 1px var(--st-ready)}
+.railbox.st-ready .rdot{background:var(--st-ready)}
+.railbox.st-needs_info{border-color:var(--st-bad);box-shadow:0 0 8px 1px var(--st-bad)}
+.railbox.st-needs_info .rdot{background:var(--st-bad)}
+.railbox.st-answered{border-color:var(--st-ans);box-shadow:0 0 8px 1px var(--st-ans)}
+.railbox.st-answered .rdot{background:var(--st-ans)}
+.railbox.st-revising,.railbox.st-revised,.railbox.st-validating,.railbox.st-launching{border-color:var(--st-warn);box-shadow:0 0 8px 1px var(--st-warn);animation:pulse 1.2s infinite}
+.railbox.st-revising .rdot,.railbox.st-revised .rdot,.railbox.st-validating .rdot,.railbox.st-launching .rdot{background:var(--st-warn)}
+.railbox.st-skipped{opacity:.35}
+#navfly{position:absolute;left:64px;top:0;bottom:0;width:272px;background:var(--card);border-right:1px solid var(--line);
+  box-shadow:14px 0 30px -12px rgba(0,0,0,.4);overflow-y:auto;z-index:7;padding:4px 0 30px}
+#navfly .navitem img{width:22px;height:22px;border-radius:5px;object-fit:cover;background:#fff;border:1px solid var(--line);flex:none}
 .navgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 5px}
 .navitem{display:flex;gap:9px;align-items:center;padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
 .navitem:hover{background:var(--mono-bg)}
@@ -61,7 +85,7 @@ nav{width:295px;min-width:295px;overflow-y:auto;border-right:1px solid var(--lin
 .navitem .nm{font-size:13px;line-height:1.3;flex:1}
 .navitem .pr{font-size:11.5px;color:var(--mut)}
 main{flex:1;overflow-y:auto;padding:20px 22px 80px}
-.wrap{max-width:1120px;margin:0 auto}
+.wrap{max-width:1560px;margin:0 auto}
 .flags{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
 .flag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px}
 .flag.warn{background:var(--chip-warn);color:var(--warn)}
@@ -80,7 +104,7 @@ main{flex:1;overflow-y:auto;padding:20px 22px 80px}
 @keyframes flash{0%{box-shadow:0 0 0 3px var(--warn)}100%{box-shadow:none}}
 .mock-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);
   margin:0 0 14px;font-family:system-ui,sans-serif;font-weight:600}
-.cols{display:grid;grid-template-columns:minmax(240px,330px) minmax(300px,1fr) 225px;gap:24px}
+.cols{display:grid;grid-template-columns:minmax(240px,330px) minmax(300px,1fr);gap:24px}
 @media(max-width:980px){.cols{grid-template-columns:1fr}}
 .gallery{display:flex;gap:10px;align-items:flex-start}
 .thumbcol{display:flex;flex-direction:column;gap:8px}
@@ -155,19 +179,31 @@ textarea{min-height:70px;resize:vertical}
 .chatrow{display:flex;gap:8px;margin-top:8px}
 .chatrow input{flex:1}
 [hidden]{display:none!important}
-/* item view: sticky command strip (status + actions + chat) across the top, content below */
-.work{display:block}
-.content{min-width:0}
-.dock{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,32%);grid-template-rows:auto minmax(0,1fr);
-  height:196px;margin:0 0 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 8px 14px -12px rgba(0,0,0,.35)}
-.dock.big{height:calc(70vh / var(--z,1))}
-.dockhead{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--line);font-size:12px}
-.dockhead .lbl{letter-spacing:.05em;text-transform:uppercase;color:var(--mut);font-weight:700;font-size:11px;margin-right:4px}
-.dockhead button{font-size:12.5px;padding:4px 11px}
-.dockhead .statuschip{font-size:12.5px;padding:4px 12px}
-.dock .thread{grid-column:1;min-height:0;max-height:none;margin:0;padding:8px 12px;overflow-y:auto}
-.dock .msg{font-size:12px;max-width:88%;padding:5px 9px;line-height:1.4}
-.composer{grid-column:2;border-left:1px solid var(--line);padding:6px 10px 8px;overflow:auto;background:var(--card);display:flex;flex-direction:column;gap:5px;font-size:12px}
+/* ★4.5 Full Column: rail | preview center | all-fields data column | chat rail */
+.work45{display:grid;grid-template-columns:minmax(0,1fr) 300px minmax(290px,25%);gap:12px;align-items:start}
+.centercol{min-width:0}
+.actbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:7px 12px;margin-bottom:10px}
+.actbar button{font-size:12.5px;padding:5px 11px}
+.actbar .statuschip{font-size:12.5px;padding:4px 12px}
+.datacol,.chatcol{position:sticky;top:0;max-height:calc(100vh/var(--z,1) - 92px);overflow-y:auto;scrollbar-width:thin}
+.chatcol{background:var(--card);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;
+  height:calc(100vh/var(--z,1) - 92px)}
+.chatcol .thread{flex:1;min-height:0;max-height:none;margin:0;padding:8px 12px;overflow-y:auto}
+.chatcol .msg{font-size:12px;max-width:88%;padding:5px 9px;line-height:1.4}
+.dc-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:0 0 4px;padding:0 2px}
+.datacol .meta{display:block;margin-bottom:8px}
+.datacol .meta>div{display:flex;gap:8px;align-items:baseline;border-bottom:1px solid var(--line)}
+.datacol .meta>div:last-child{border-bottom:none}
+.datacol .meta .k{width:84px;flex:none}
+.datacol .meta .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;word-break:normal}
+.datacol .meta>div.open .v{white-space:normal;overflow:visible}
+.datacol .rfgrid{display:block}
+.datacol .rfgrid>div{display:flex;gap:8px;align-items:baseline;border-bottom:1px solid var(--line)}
+.datacol .rfgrid>div:last-child{border-bottom:none}
+.datacol .rfgrid .k{width:84px;flex:none}
+.datacol .rfgrid .v{flex:1;min-width:0}
+.composer{border-top:1px solid var(--line);padding:6px 10px 8px;background:var(--card);display:flex;flex-direction:column;gap:5px;font-size:12px;flex:none}
 .modebar{display:flex;gap:4px}
 .modebtn{font-size:11.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer}
 .modebtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -184,7 +220,7 @@ textarea{min-height:70px;resize:vertical}
 .panelrow{margin-bottom:12px}
 .zoomctl{display:inline-flex;gap:2px;margin-left:auto}
 .zoomctl button{font-size:11px;padding:2px 7px}
-@media(max-width:900px){.dock{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;height:auto;max-height:60vh}.composer{grid-column:1;border-left:none;border-top:1px solid var(--line)}}
+@media(max-width:1150px){.work45{grid-template-columns:1fr}.datacol,.chatcol{position:static;max-height:none;height:auto}.chatcol .thread{max-height:300px}}
 .statuschip{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;padding:6px 15px;border-radius:99px;background:var(--mono-bg);color:var(--mut)}
 .statuschip.revising,.statuschip.launching,.statuschip.validating,.statuschip.revised{background:var(--st-warn);color:#fff}
 .statuschip.needs_info{background:var(--st-bad);color:#fff}
@@ -319,6 +355,7 @@ textarea{min-height:70px;resize:vertical}
 </header>
 <div class="layout">
   <nav id="nav"></nav>
+  <div id="navfly" class="hidden"></div>
   <main><div class="wrap" id="view"></div></main>
 </div>
 </div>
@@ -666,16 +703,40 @@ function grouped(){
   DATA.forEach((d,i) => { const k = d[gf] || 'Other'; if (!m.has(k)) m.set(k, []); m.get(k).push([d,i]); });
   return [...m.entries()];
 }
+function tagOf(label){
+  const w = String(label).replace(/[^A-Za-z ]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '—';
+  if (w.length === 1) return w[0].slice(0, 5).toUpperCase();
+  return (w[0].slice(0, 4) + '·' + w.slice(1, 3).map(x => x[0]).join('')).toUpperCase();
+}
+function railThumb(d){
+  const u = (d.images || [])[0];
+  return u ? `<img src="${esc(u)}" alt="" loading="lazy">`
+           : `<span style="display:grid;place-items:center;height:100%;color:#999;font-size:15px">▦</span>`;
+}
 function renderNav(){
+  // Collapsed thumbnail rail: real product photo per item, status = glow,
+  // white/ink ring = current item, hairline tags keep the category groups.
   const el = document.getElementById('nav');
-  el.innerHTML = grouped().map(([label, items]) =>
-    `<div class="navgroup">${esc(label)}</div>` + items.map(([d,i]) => {
-      const st = itemStatus(d.id);
-      return `<div class="navitem ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}">
-        <span class="dot"></span><span class="nm">${esc(d.short_title)}</span>
-        <span class="pr">${money(d.price ?? d.msrp)}</span></div>`;
-    }).join('')).join('');
-  el.querySelectorAll('.navitem').forEach(n => n.onclick = () => go(+n.dataset.i));
+  el.innerHTML = `<div class="railexp" id="railexp" title="Show the item list (or hover)">⟩</div>` +
+    grouped().map(([label, items]) =>
+      `<div class="railtag" title="${esc(label)}"><i></i><span class="t">${esc(tagOf(label))}</span><i></i></div>` +
+      items.map(([d,i]) => {
+        const st = itemStatus(d.id);
+        return `<div class="railbox ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}" title="${esc(d.short_title || d.title || '')}${st?' · '+esc(ST_LABEL[st]||st):''}">${railThumb(d)}<span class="rdot"></span></div>`;
+      }).join('')).join('');
+  el.querySelectorAll('.railbox').forEach(n => n.onclick = () => go(+n.dataset.i));
+  // Flyout: the full list, campaign-only (no campaigns back-link here - that
+  // lives in the header). Overlays the work; nothing reflows.
+  const fly = document.getElementById('navfly');
+  fly.innerHTML = `<div class="navgroup" style="padding-top:8px">${DATA.length} items · this campaign only</div>` +
+    grouped().map(([label, items]) =>
+      `<div class="navgroup">${esc(label)}</div>` + items.map(([d,i]) => {
+        const st = itemStatus(d.id);
+        return `<div class="navitem ${st?'st-'+st:''} ${i===cur?'sel':''}" data-i="${i}">
+          ${railThumb(d)}<span class="nm">${esc(d.short_title)}</span><span class="dot"></span></div>`;
+      }).join('')).join('');
+  fly.querySelectorAll('.navitem').forEach(n => n.onclick = () => { fly.classList.add('hidden'); go(+n.dataset.i); });
   const sts = DATA.map(d => itemStatus(d.id));
   document.getElementById('c-total').textContent = `${DATA.length} items`;
   const togo = DATA.length - sts.filter(s=>s==='live').length - sts.filter(s=>s==='skipped').length;
@@ -697,7 +758,7 @@ function flagsFor(d){
   return f;
 }
 // review-dock composer mode, dock size and which data cells are expanded
-let composeMode = 'revise', dockBig = false;
+let composeMode = 'revise';
 const rfOpen = new Set();
 function kidsFor(d){
   // Effective variants: a size/color override set on the variant (chat or the
@@ -780,7 +841,6 @@ function render(){
   const imgs = imagesFor(d);
   imgSel = Math.min(imgSel, Math.max(0, imgs.length-1));
   const theme = d.families?.[0]?.theme || '';
-  const price = kid?.attrs?.price ?? kid?.attrs?.msrp ?? d.price ?? d.msrp;
   const st = itemStatus(d.id);
   const busy = ['revising','launching','validating'].includes(st);
   const noteVal = document.getElementById('note')?.value ?? '';
@@ -828,9 +888,9 @@ function render(){
   const oldPos = oldTh ? oldTh.scrollTop : 0;
 
   document.getElementById('view').innerHTML = `
-  <div class="work">
-  <section class="dock ${dockBig?'big':''}">
-    <div class="dockhead">
+  <div class="work45">
+  <div class="centercol">
+  <div class="actbar">
       ${st?`<span class="statuschip ${st}">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live to Amazon</button>`:''}
@@ -841,90 +901,8 @@ function render(){
       <span style="flex:1"></span>
       <button class="ghost" id="btn-prev">← Prev</button>
       <button class="ghost" id="btn-next">Next →</button>
-      <button class="ghost" id="dock-big" title="${dockBig?'Shrink':'Expand'} the chat">${dockBig?'⤡ Shrink chat':'⤢ Expand chat'}</button>
-    </div>
-    ${threadHTML(d)}
-    <div class="composer">
-      <div class="modebar">
-        <button class="modebtn ${composeMode==='revise'?'on':''}" data-m="revise">✎ Change request</button>
-        <button class="modebtn ${composeMode==='chat'?'on':''}" data-m="chat">💬 Ask</button>
-      </div>
-      <div ${composeMode==='revise'?'':'hidden'} style="display:flex;flex-direction:column;gap:6px;flex:1">
-        <textarea id="note" placeholder="Tell the AI what to change — it revises the listing live">${esc(noteVal)}</textarea>
-        ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
-        <div class="sendrow">
-          <button class="primary" id="btn-changes" ${busy?'disabled':''}>Send change request</button>
-          ${(ovrAvail||ovrCk)?`<label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>`:''}
-        </div>
-      </div>
-      <div class="chatrow" ${composeMode==='chat'?'':'hidden'}>
-        <input type="text" id="chat" placeholder="Ask the AI about this item…" value="${esc(chatVal)}">
-        <button class="primary" id="btn-chat">Send</button>
-      </div>
-    </div>
-  </section>
-  <div class="content">
-  <div class="topbar">
+  </div>
   <div class="flags">${flagsFor(d).map(([c,t])=>`<span class="flag ${c}">${esc(t)}</span>`).join('')}</div>
-  <div class="meta">
-    <div><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
-    <div><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
-    <div><div class="k">UPC</div><div class="v">${esc(kid ? (kid.upc||'—') : (parentView ? '—' : (d.upc||'—')))}</div></div>
-    <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
-    <div><div class="k">MSRP</div><div class="v">${money(d.msrp)}</div></div>
-    <div><div class="k">Dealer cost</div><div class="v">${money(d.dealer_cost)}</div></div>
-    <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
-    ${(() => {
-      const kw = String(fKid.item_type_keyword ?? fBase.item_type_keyword ?? '').trim();
-      const po = String(fKid.amazon_product_type ?? fBase.amazon_product_type ?? '').trim().toUpperCase();
-      if (!BTG) loadBTG();
-      let body;
-      if (rfEdit === 'item_type_keyword'){
-        const opts = BTG ? Object.entries(BTG.by_keyword).sort().map(([k,ids]) =>
-          `<option value="${esc(k)}">${esc(((BTG.nodes[ids[0]]||{}).path||'').replace(/^.*?Cycling\s*>\s*/,''))}</option>`).join('') : '';
-        body = `<div class="vedit"><input type="text" id="rf-in" list="kwlist" value="${esc(kw)}" placeholder="type to search Cycling categories…"><button class="rfok">✓</button><button class="rfx">✕</button></div><datalist id="kwlist">${opts}</datalist>`;
-      } else if (!kw){
-        body = `<div class="v" style="color:var(--bad)">not set — Amazon would guess the category <button class="rfedit" data-k="item_type_keyword">✎ pick</button></div>`;
-      } else if (!BTG){
-        body = `<div class="v">${esc(kw)} · ${BTGfailed ? 'category tree unavailable' : 'loading tree…'}</div>`;
-      } else {
-        const ids = BTG.by_keyword?.[kw]; const node = ids && BTG.nodes[ids[0]];
-        if (!node) body = `<div class="v" style="color:var(--bad)">⚠ "${esc(kw)}" is not in Amazon's Cycling tree — this would list OUTSIDE Cycling <button class="rfedit" data-k="item_type_keyword">✎</button></div>`;
-        else {
-          const pts = node.product_types || [];
-          const pt = po || pts[0] || '?';
-          const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
-          const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
-          const also = pts.filter(p => p !== pt);
-          body = `<div class="v">${esc(short)} <span style="opacity:.65" title="Amazon product type = the attribute schema this listing is created with; set by the browse node your keyword maps to">· Amazon type: ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
-            <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
-            <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
-        }
-      }
-      // one thin full-width line: label · path · type · keyword · controls
-      return `<div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center;min-height:0;padding:2px 0;font-size:12px;white-space:nowrap;overflow:hidden">
-        <span class="k" style="margin:0;flex:none">Category</span>
-        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${body.replace(/<div class="v[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '')}</span>
-        <span class="sub" style="flex:none;opacity:.6">kw ${esc(kw||'—')}${d.browse_node?' · confirmed':''}</span></div>`;
-    })()}
-  </div>
-  <div class="rfgrid">
-    ${RF.map(([k,lab])=>{ const v = rfVal(k);
-      if (parentView && (k==='size' || k==='model_number')){
-        const note = k==='size' ? 'not needed' : (v ? esc(v) : (kids[0]?.mpn ? esc(String(kids[0].mpn)) + ' · from 1st variant' : 'not needed'));
-        return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
-      }
-      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div class="${v?'':'missv'} ${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
-    ${rfEdit === 'prop65'
-      ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
-      : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
-    ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
-      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
-      return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
-  </div>
-  <div class="rfhint">Click a value to expand it, ✎ to edit (✓ saves, Esc cancels) — or ask in the chat: “set color to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
-  </div>
 
   <div class="mock">
     <p class="mock-tag">Amazon detail page preview — generated copy${st==='revised'?' — REVISED':''}</p>
@@ -981,15 +959,6 @@ function render(){
           : `<li>${esc(bo.content)} <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button></li>`).join('')}</ul>
         ${bulletEdit===-1 && !titleEdit ? `<div class="rfhint">Click ✎ on the title or a bullet to edit it directly.</div>` : ''}
       </div>
-      <div class="buybox">
-        <div class="price"><sup>$</sup>${price!=null?Number(price).toFixed(2):'—'}</div>
-        <div class="bb-line">${price!=null && d.msrp && Number(price) < Number(d.msrp) ? `Offer price${(kid?.attrs?.map ?? d.map)?' (MAP)':''} · List Price / MSRP ${money(kid?.attrs?.msrp ?? d.msrp)}` : `List Price — MSRP${d.map_missing?' (no MAP — selling at MSRP)':''}`}</div>
-        <div class="bb-line">FREE Returns</div>
-        <div class="bb-line" style="color:#1E7B45">In Stock</div>
-        <button class="bb-btn bb-cart">Add to Cart</button>
-        <button class="bb-btn bb-buy">Buy Now</button>
-        <div class="bb-line">Ships from &amp; sold by Bicycle Addiction</div>
-      </div>
     </div>
     <div class="desc-h">Product Description ${descEdit ? '' : '<button class="rfedit descedit" title="Edit description">✎</button>'}</div>
     ${descEdit
@@ -1009,6 +978,86 @@ function render(){
     </div>
   </div>
 
+  </div>
+  <div class="datacol">
+  <div class="dc-h">Product data — ${kid?'this variant':'this listing'}</div>
+  <div class="meta">
+    <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
+    <div data-rf="_msku"><div class="k">MSKU${(kid ? kid.sku && kid.sku !== kid.upc : !parentView && d.sku && d.sku !== d.upc) ? ' · in catalog' : ''}</div><div class="v">${esc(mUpc)}</div></div>
+    <div data-rf="_upc"><div class="k">UPC</div><div class="v">${esc(kid ? (kid.upc||'—') : (parentView ? '—' : (d.upc||'—')))}</div></div>
+    <div><div class="k">ASIN</div><div class="v">${mAsin?`<a href="https://www.amazon.com/dp/${mAsin}" target="_blank" rel="noopener">${mAsin}</a>`:'—'}</div></div>
+    <div><div class="k">Country</div><div class="v">${esc(d.coo||'—')}</div></div>
+    ${(() => {
+      const kw = String(fKid.item_type_keyword ?? fBase.item_type_keyword ?? '').trim();
+      const po = String(fKid.amazon_product_type ?? fBase.amazon_product_type ?? '').trim().toUpperCase();
+      if (!BTG) loadBTG();
+      let body;
+      if (rfEdit === 'item_type_keyword'){
+        const opts = BTG ? Object.entries(BTG.by_keyword).sort().map(([k,ids]) =>
+          `<option value="${esc(k)}">${esc(((BTG.nodes[ids[0]]||{}).path||'').replace(/^.*?Cycling\s*>\s*/,''))}</option>`).join('') : '';
+        body = `<div class="vedit"><input type="text" id="rf-in" list="kwlist" value="${esc(kw)}" placeholder="type to search Cycling categories…"><button class="rfok">✓</button><button class="rfx">✕</button></div><datalist id="kwlist">${opts}</datalist>`;
+      } else if (!kw){
+        body = `<div class="v" style="color:var(--bad)">not set — Amazon would guess the category <button class="rfedit" data-k="item_type_keyword">✎ pick</button></div>`;
+      } else if (!BTG){
+        body = `<div class="v">${esc(kw)} · ${BTGfailed ? 'category tree unavailable' : 'loading tree…'}</div>`;
+      } else {
+        const ids = BTG.by_keyword?.[kw]; const node = ids && BTG.nodes[ids[0]];
+        if (!node) body = `<div class="v" style="color:var(--bad)">⚠ "${esc(kw)}" is not in Amazon's Cycling tree — this would list OUTSIDE Cycling <button class="rfedit" data-k="item_type_keyword">✎</button></div>`;
+        else {
+          const pts = node.product_types || [];
+          const pt = po || pts[0] || '?';
+          const short = (node.path||'').replace(/^.*?Cycling\s*>\s*/,'');
+          const warn = po && pts.length && !pts.includes(po) ? ` <span style="color:var(--bad)">⚠ override ${esc(po)} is not accepted here</span>` : '';
+          const also = pts.filter(p => p !== pt);
+          body = `<div class="v">${esc(short)} <span style="opacity:.65" title="Amazon product type = the attribute schema this listing is created with; set by the browse node your keyword maps to">· Amazon type: ${esc(pt)}${also.length?' (also accepts '+esc(also.join(', '))+')':''}</span>${warn}
+            <button class="rfedit" data-k="item_type_keyword" title="Change category keyword">✎</button>
+            <button class="ptcheck" title="Ask Amazon what this product type requires — posts to the thread">? requirements</button></div>`;
+        }
+      }
+      // one thin full-width line: label · path · type · keyword · controls
+      return `<div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center;min-height:0;padding:2px 0;font-size:12px;white-space:nowrap;overflow:hidden">
+        <span class="k" style="margin:0;flex:none">Category</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${body.replace(/<div class="v[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '')}</span>
+        <span class="sub" style="flex:none;opacity:.6">kw ${esc(kw||'—')}${d.browse_node?' · confirmed':''}</span></div>`;
+    })()}
+  </div>
+  <div class="rfgrid">
+    ${RF.map(([k,lab])=>{ const v = rfVal(k);
+      if (parentView && (k==='size' || k==='model_number')){
+        const note = k==='size' ? 'not needed' : (v ? esc(v) : (kids[0]?.mpn ? esc(String(kids[0].mpn)) + ' · from 1st variant' : 'not needed'));
+        return `<div><div class="k">${lab}</div><div class="v" style="opacity:.55">${note}</div></div>`;
+      }
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div class="${v?'':'missv'} ${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'missing'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+    ${rfEdit === 'prop65'
+      ? `<div><div class="k">Prop 65</div><div class="vedit"><input type="checkbox" id="rf-in-p65" ${p65v?'checked':''}><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`
+      : `<div><div class="k">Prop 65</div><div class="v">${p65v?'⚠ ON':'off'} <button class="rfedit" data-k="prop65">✎</button></div></div>`}
+    ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
+      if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
+      return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+  </div>
+  <div class="rfhint">Click a value to expand it, ✎ to edit (✓ saves, Esc cancels) — or ask in the chat: “set color to Black”, “box is 8 x 4 x 2 in, 0.6 lb”. Edits apply to the selected variant.</div>
+  </div>
+  <div class="chatcol">
+    ${threadHTML(d)}
+    <div class="composer">
+      <div class="modebar">
+        <button class="modebtn ${composeMode==='revise'?'on':''}" data-m="revise">✎ Change request</button>
+        <button class="modebtn ${composeMode==='chat'?'on':''}" data-m="chat">💬 Ask</button>
+      </div>
+      <div ${composeMode==='revise'?'':'hidden'} style="display:flex;flex-direction:column;gap:6px;flex:1">
+        <textarea id="note" placeholder="Tell the AI what to change — it revises the listing live">${esc(noteVal)}</textarea>
+        ${ovrCk?`<div class="ovrrow"><input type="text" id="ovr-reason" placeholder="Override justification — your source or reasoning (recorded with your name in the audit log)" value="${esc(ovrVal)}"></div>`:''}
+        <div class="sendrow">
+          <button class="primary" id="btn-changes" ${busy?'disabled':''}>Send change request</button>
+          ${(ovrAvail||ovrCk)?`<label class="ovrlab" title="Apply a change the AI refuses for lack of evidence. Recorded with your name and reason."><input type="checkbox" id="ovr-ck" ${ovrCk?'checked':''}> ⚠ Override evidence rule</label>`:''}
+        </div>
+      </div>
+      <div class="chatrow" ${composeMode==='chat'?'':'hidden'}>
+        <input type="text" id="chat" placeholder="Ask the AI about this item…" value="${esc(chatVal)}">
+        <button class="primary" id="btn-chat">Send</button>
+      </div>
+    </div>
   </div>
   </div>`;
 
@@ -1213,6 +1262,17 @@ document.addEventListener('click', async ev => {
   if (id) callFn('review-ai', { event_id: id });
 });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'ovr-ck') render(); });
+// Rail flyout: hover the rail (or click ⟩) to overlay the full item list;
+// it closes when the pointer leaves. The work area never reflows.
+{
+  const navEl = document.getElementById('nav'), flyEl = document.getElementById('navfly');
+  let openT = null;
+  navEl.addEventListener('mouseenter', () => { openT = setTimeout(() => { if (camp) flyEl.classList.remove('hidden'); }, 160); });
+  navEl.addEventListener('mouseleave', () => { clearTimeout(openT);
+    setTimeout(() => { if (!flyEl.matches(':hover') && !navEl.matches(':hover')) flyEl.classList.add('hidden'); }, 300); });
+  flyEl.addEventListener('mouseleave', () => flyEl.classList.add('hidden'));
+  document.addEventListener('click', e => { if (e.target.closest('#railexp')) flyEl.classList.toggle('hidden'); });
+}
 // Auto-scale: the console was designed around ~1500px wide; larger monitors
 // zoom the whole UI up proportionally (to 1.75x on 4K). A−/auto/A+ in the
 // header stores a personal preference in this browser.
@@ -1232,8 +1292,7 @@ document.getElementById('zoom-auto').onclick = () => { try { localStorage.remove
 document.addEventListener('click', e => {
   const mb = e.target.closest('.modebtn');
   if (mb){ composeMode = mb.dataset.m; render(); setTimeout(() => document.getElementById(composeMode === 'revise' ? 'note' : 'chat')?.focus(), 0); return; }
-  if (e.target.closest('#dock-big')){ dockBig = !dockBig; render(); return; }
-  const cell = e.target.closest('.rfgrid>div[data-rf]');
+  const cell = e.target.closest('.rfgrid>div[data-rf], .meta>div[data-rf]');
   if (cell && !e.target.closest('button,input')){ const k = cell.dataset.rf; rfOpen.has(k) ? rfOpen.delete(k) : rfOpen.add(k); cell.classList.toggle('open'); }
 });
 async function doRevise(){
