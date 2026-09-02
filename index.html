@@ -31,8 +31,16 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);
   font:14.5px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
-header{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line);
-  background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header{display:flex;align-items:center;gap:9px;padding:6px 12px;border-bottom:1px solid var(--line);
+  background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:nowrap}
+header>*{flex:none}
+#console header .htitle{flex:0 1 auto;min-width:60px;overflow:hidden}
+#console header .htitle .sub{display:none}
+#console header h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+#hdr-actions{flex:0 1 auto;min-width:0;overflow:hidden;flex-wrap:nowrap!important}
+#hdr-actions button{font-size:11.5px;padding:3px 9px;white-space:nowrap}
+#hdr-actions .flag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;flex:0 1 auto}
+.count{font-size:11px;padding:2px 8px;white-space:nowrap}
 h1{font-size:16.5px;margin:0;letter-spacing:-.01em}
 .sub{color:var(--mut);font-size:12.5px}
 .spacer{flex:1}
@@ -165,7 +173,10 @@ textarea{min-height:70px;resize:vertical}
 .work45{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,26%);gap:12px;flex:1;min-height:0}
 .centercol{min-width:0;display:flex;flex-direction:column;min-height:0}
 .pintop{flex:none;padding-bottom:4px}
-.pinsum{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px 2px 4px}
+.pinsum{display:flex;gap:9px;align-items:center;font-size:11.5px;color:var(--mut);padding:1px 2px 4px}
+.pinsum span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinsum button,.pincell button{font-size:11px;padding:2px 9px;color:var(--mut)}
+.pincell{display:flex;align-items:center;justify-content:flex-end}
 .scrollpane{flex:1;min-height:0;overflow-y:auto;padding-bottom:50px;scrollbar-width:thin}
 .actbar{position:sticky;top:0;z-index:5;box-shadow:0 8px 12px -10px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
   border-radius:10px;padding:7px 12px;margin-bottom:10px}
@@ -323,10 +334,10 @@ textarea{min-height:70px;resize:vertical}
 
 <div id="console" class="hidden" style="display:flex;flex-direction:column;height:100%">
 <header>
-  <button class="homelink" id="btn-home">⌂ Campaigns</button>
+  <button class="homelink" id="btn-home" title="Back to campaigns">⌂</button>
   <span class="zoomctl" title="Console size — auto follows your monitor width"><button id="zoom-minus">A−</button><button id="zoom-auto">auto</button><button id="zoom-plus">A+</button></span>
   <button class="ghost" id="theme-btn" title="Theme — auto follows your system" style="font-size:11.5px;padding:3px 9px"></button>
-  <div>
+  <div class="htitle">
     <h1 id="hdr-title">Listing Review</h1>
     <div class="sub" id="hdr-sub"></div>
   </div>
@@ -701,13 +712,16 @@ function renderNav(){
     }).join('')).join('');
   el.querySelectorAll('.navitem').forEach(n => n.onclick = () => go(+n.dataset.i));
   const sts = DATA.map(d => itemStatus(d.id));
-  document.getElementById('c-total').textContent = `${DATA.length} items`;
   const togo = DATA.length - sts.filter(s=>s==='live').length - sts.filter(s=>s==='skipped').length;
-  document.getElementById('c-togo').textContent = `${togo} to go`;
-  document.getElementById('c-rev').textContent = `${sts.filter(s=>s==='revising'||s==='revised').length} in revision · ${sts.filter(s=>s==='skipped').length} skipped`;
+  const nRev = sts.filter(s=>s==='revising'||s==='revised').length, nSkip = sts.filter(s=>s==='skipped').length;
+  const cT = document.getElementById('c-total');
+  cT.textContent = `${togo} of ${DATA.length} to go`; cT.title = `${DATA.length} items · ${togo} still to review`;
+  document.getElementById('c-togo').style.display = 'none';
+  const cR = document.getElementById('c-rev');
+  cR.textContent = `${nRev} rev${nSkip?` · ${nSkip} skip`:''}`; cR.style.display = (nRev || nSkip) ? '' : 'none';
   const nPend = sts.filter(s=>['ready','validating','launching'].includes(s)).length, nErr = sts.filter(s=>s==='needs_info').length;
-  document.getElementById('c-pend').textContent = `${nPend} pending`; document.getElementById('c-pend').style.display = nPend ? '' : 'none';
-  document.getElementById('c-err').textContent = `${nErr} error${nErr===1?'':'s'}`; document.getElementById('c-err').style.display = nErr ? '' : 'none';
+  document.getElementById('c-pend').textContent = `${nPend} pend`; document.getElementById('c-pend').style.display = nPend ? '' : 'none';
+  document.getElementById('c-err').textContent = `${nErr} err`; document.getElementById('c-err').style.display = nErr ? '' : 'none';
   document.getElementById('c-live').textContent = `${sts.filter(s=>s==='live').length} live`;
 }
 function flagsFor(d){
@@ -852,7 +866,7 @@ function render(){
   const oldPos = oldTh ? oldTh.scrollTop : 0;
 
   document.getElementById('hdr-actions').innerHTML = `
-      ${st?`<span class="statuschip ${st}" style="font-size:12px;padding:3px 11px">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}
+      ${st?`<span class="statuschip ${st}" style="font-size:11.5px;padding:2px 10px">${busy?'<span class="spin"></span>':''}${esc(ST_LABEL[st]||st)}</span>`:''}
       <button class="approve" id="btn-approve" ${busy?'disabled':''}>✔ Approve &amp; validate</button>
       ${st==='ready'?`<button class="golive" id="btn-live">🚀 Push live</button>`:''}
       ${st==='live'?`<button id="btn-verify">🔍 Verify</button>`:''}
@@ -861,13 +875,12 @@ function render(){
         : `<button class="ghost" id="btn-skip" ${busy?'disabled':''}>⏸ Skip</button>`}
       <button class="ghost" id="btn-prev" title="Previous item">←</button>
       <button class="ghost" id="btn-next" title="Next item">→</button>
-      <button class="ghost" id="pin-tgl" title="${pinOpen?'Collapse':'Expand'} the pinned product data">${pinOpen?'▾ Data':'▸ Data'}</button>
       ${flagsFor(d).map(([c,t])=>`<span class="flag ${c}" title="${esc(t)}">${esc(t.length>42?t.slice(0,40)+'…':t)}</span>`).join('')}`;
   document.getElementById('view').innerHTML = `
   <div class="work45">
   <div class="centercol">
   <div class="pintop">
-  ${pinOpen?'':`<div class="pinsum">MPN ${esc(mMpn)} · MSKU ${esc(mUpc)} · ASIN ${mAsin?esc(mAsin):'—'} · ${esc(rfVal('brand'))} · Size ${esc(rfVal('size')||'—')} · ${esc(rfVal('material')||'')} · ${esc(rfVal('color')||'')} — ▸ Data in the top bar reopens the full grid</div>`}
+  ${pinOpen?'':`<div class="pinsum"><button class="ghost" id="pin-tgl" title="Expand the product data">▸ Data</button><span>MPN ${esc(mMpn)} · MSKU ${esc(mUpc)} · ASIN ${mAsin?esc(mAsin):'—'} · ${esc(rfVal('brand'))} · Size ${esc(rfVal('size')||'—')} · ${esc(rfVal('material')||'')} · ${esc(rfVal('color')||'')}</span></div>`}
   <div ${pinOpen?'':'hidden'}>
   <div class="meta">
     <div data-rf="_mpn"><div class="k">MPN${kid?' · variant':''}</div><div class="v">${esc(mMpn)}</div></div>
@@ -923,6 +936,7 @@ function render(){
     ${RFOPT.map(([k,lab])=>{ const v = String(fKid[k] ?? fBase[k] ?? '');
       if (rfEdit === k) return `<div><div class="k">${lab}</div><div class="vedit"><input type="text" id="rf-in" value="${esc(v)}"><button class="rfok">✓</button><button class="rfx">✕</button></div></div>`;
       return `<div class="${rfOpen.has(k)?'open':''}" data-rf="${k}"><div class="k">${lab}</div><div class="v" title="${esc(v)}">${v?esc(v):'—'} <button class="rfedit" data-k="${k}">✎</button></div></div>`; }).join('')}
+    ${pinOpen?`<div class="pincell"><button class="ghost" id="pin-tgl" title="Collapse the product data to one line">▴ Collapse data</button></div>`:''}
   </div>
   </div>
   </div>
