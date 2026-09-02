@@ -951,7 +951,7 @@ function render(){
         <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumbwrap" data-i="${i}" draggable="true" title="Drag to reorder — first photo is the main image"><div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>
             <div class="thumbops"><button class="tup" data-i="${i}" title="Move earlier (first photo is the main image)" ${i===0?'disabled':''}>▲</button><button class="tdel" data-i="${i}" title="Remove this photo from the listing">✕</button></div></div>`).join('')}
           <label class="thumb thumbadd" title="Add photos to this ${kid?'variant':'listing'}">＋<input type="file" accept="image/*" multiple hidden id="upl2"></label>
-          ${d.is_family && kids.length ? `<button class="ghost matchord" title="Reorder every variant's gallery to follow the parent's photo order (matched by filename; variant-only photos keep their place at the end)">⇅ Parent<br>order</button>` : ''}
+          ${d.is_family && kids.length ? `<button class="ghost matchord" title="Copy the parent's gallery into every variant — parent's photos first in the parent's order, variant-only extras after (9 max)">⇅ Parent<br>order</button>` : ''}
           <div class="sub" id="upl2-status"></div></div>
         <div class="mainimg">${imgs.length?`<img src="${esc(imgs[imgSel])}" alt="">`:`<div class="noimg">No imagery yet<br>— needs photos before launch —<br><br>
           <label class="uplbtn">📷 Upload photos<input type="file" accept="image/*" multiple hidden id="upl"></label>
@@ -1368,22 +1368,22 @@ async function doMatchOrder(btn){
   const d = DATA[cur]; const fam = d.families?.[0]; if (!fam?.children?.length) return;
   if (btn){ btn.disabled = true; btn.textContent = '…'; }
   const base = u => String(u).split('?')[0].split('/').pop().toLowerCase();
-  const order = (d.images || []).map(base);
-  const pos = u => { const i = order.indexOf(base(u)); return i < 0 ? 999 : i; };
+  const parent = (d.images || []);
+  const pset = new Set(parent.map(base));
   let changed = 0;
   for (const k of fam.children){
-    const imgs = (k.attrs?.images || []);
-    if (imgs.length < 2) continue;
-    const sorted = imgs.map((u, i) => [u, pos(u), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
-    if (JSON.stringify(sorted) !== JSON.stringify(imgs)){
-      const res = await callFnJson('review-launch', { action: 'edit', campaign: camp.key, item_id: d.id, child_id: k.id, patch: { images: sorted } });
+    const own = (k.attrs?.images || []);
+    const extras = own.filter(u => !pset.has(base(u)));
+    const next = [...parent, ...extras].slice(0, 9);
+    if (JSON.stringify(next) !== JSON.stringify(own)){
+      const res = await callFnJson('review-launch', { action: 'edit', campaign: camp.key, item_id: d.id, child_id: k.id, patch: { images: next } });
       if (res?.ok) changed++;
     }
   }
   await refreshData();
   if (btn){ btn.disabled = false; btn.innerHTML = '⇅ Parent<br>order'; }
-  alert(changed ? `Matched ${changed} variant galler${changed === 1 ? 'y' : 'ies'} to the parent's photo order.`
-                : 'All variant galleries already follow the parent order.');
+  alert(changed ? `Parent gallery copied into ${changed} variant${changed === 1 ? '' : 's'} — parent's photos first in the parent's order, each variant's extra shots after (9-photo cap).`
+                : 'Every variant already carries the parent gallery in the parent order.');
 }
 async function doUpload(files){
   const d = DATA[cur];
