@@ -101,7 +101,8 @@ main{flex:1;overflow:hidden;padding:12px 22px 0;display:flex;flex-direction:colu
 .thumb{width:46px;height:46px;padding:2px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer}
 .thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .thumb.sel{border:2px solid var(--az-link);box-shadow:0 0 0 2px #C8E4EC}
-.thumbwrap{display:flex;flex-direction:column;align-items:center}
+.thumbwrap{display:flex;flex-direction:column;align-items:center;cursor:grab}
+.thumbwrap.drophint .thumb{outline:2px dashed var(--az-link);outline-offset:2px}
 .thumbops{display:flex;gap:2px;margin-top:2px}
 .thumbops button{font-size:9px;line-height:14px;padding:0 4px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#fff}
 .thumbops button:disabled{opacity:.35;cursor:default}
@@ -946,7 +947,7 @@ function render(){
     <p class="mock-tag">Amazon detail page preview — generated copy${st==='revised'?' — REVISED':''}</p>
     <div class="cols">
       <div class="gallery">
-        <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumbwrap"><div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>
+        <div class="thumbcol">${imgs.map((u,i)=>`<div class="thumbwrap" data-i="${i}" draggable="true" title="Drag to reorder — first photo is the main image"><div class="thumb ${i===imgSel?'sel':''}" data-i="${i}"><img src="${esc(u)}" alt=""></div>
             <div class="thumbops"><button class="tup" data-i="${i}" title="Move earlier (first photo is the main image)" ${i===0?'disabled':''}>▲</button><button class="tdel" data-i="${i}" title="Remove this photo from the listing">✕</button></div></div>`).join('')}
           <label class="thumb thumbadd" title="Add photos to this ${kid?'variant':'listing'}">＋<input type="file" accept="image/*" multiple hidden id="upl2"></label>
           <div class="sub" id="upl2-status"></div></div>
@@ -1075,6 +1076,20 @@ function render(){
   const galEdit = (fn) => { const d0 = DATA[cur]; const k0 = currentChild(d0); const list = imagesFor(d0).slice(); fn(list); imgSel = 0; edit({ images: list }, k0 ? k0.id : null); };
   document.querySelectorAll('.tdel').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (confirm('Remove this photo from the listing?')) galEdit(l => l.splice(i, 1)); });
   document.querySelectorAll('.tup').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i > 0) galEdit(l => { [l[i-1], l[i]] = [l[i], l[i-1]]; }); });
+  // Drag a thumbnail onto another to move it there (arrows still work too)
+  let dragIdx = null;
+  document.querySelectorAll('.thumbwrap[data-i]').forEach(w => {
+    const i = +w.dataset.i;
+    w.ondragstart = e => { dragIdx = i; e.dataTransfer.effectAllowed = 'move'; };
+    w.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; w.classList.add('drophint'); };
+    w.ondragleave = () => w.classList.remove('drophint');
+    w.ondragend = () => { dragIdx = null; document.querySelectorAll('.drophint').forEach(x => x.classList.remove('drophint')); };
+    w.ondrop = e => { e.preventDefault(); w.classList.remove('drophint');
+      if (dragIdx == null || dragIdx === i) return;
+      const from = dragIdx; dragIdx = null;
+      galEdit(l => { const [m] = l.splice(from, 1); l.splice(i, 0, m); });
+    };
+  });
   // Description editor
   const de = document.querySelector('.descedit');
   if (de) de.onclick = () => { descEdit = true; render(); const t = document.getElementById('desc-in'); if (t) t.focus(); };
