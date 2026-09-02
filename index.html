@@ -14,12 +14,18 @@
   --st-live:#00C853; --st-warn:#FFAB00; --st-bad:#FF3B30; --st-ready:#2E9BFF; --st-ans:#A868FF;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#16181B; --ink:#E6E8EB; --mut:#9AA3AD; --card:#1F2226;
     --line:#33383E; --accent:#6FA8CC; --ok:#57B380; --warn:#D9A03F; --bad:#E58B84;
     --chip-ok:#20372B; --chip-warn:#3A3021; --chip-bad:#3D2523; --mono-bg:#26292E;
     --ans:#A98FE0; --chip-ans:#332A45; --chip-acc:#23303B; --thumb-bg:#5A626D; --thumb-bg2:#41474F;
   }
+}
+:root[data-theme="dark"]{
+    --bg:#16181B; --ink:#E6E8EB; --mut:#9AA3AD; --card:#1F2226;
+    --line:#33383E; --accent:#6FA8CC; --ok:#57B380; --warn:#D9A03F; --bad:#E58B84;
+    --chip-ok:#20372B; --chip-warn:#3A3021; --chip-bad:#3D2523; --mono-bg:#26292E;
+    --ans:#A98FE0; --chip-ans:#332A45; --chip-acc:#23303B; --thumb-bg:#5A626D; --thumb-bg2:#41474F;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -340,6 +346,7 @@ textarea{min-height:70px;resize:vertical}
 <header>
   <button class="homelink" id="btn-home">⌂ Campaigns</button>
   <span class="zoomctl" title="Console size — auto follows your monitor width"><button id="zoom-minus">A−</button><button id="zoom-auto">auto</button><button id="zoom-plus">A+</button></span>
+  <button class="ghost" id="theme-btn" title="Theme — auto follows your system" style="font-size:11.5px;padding:3px 9px"></button>
   <div>
     <h1 id="hdr-title">Listing Review</h1>
     <div class="sub" id="hdr-sub"></div>
@@ -1276,6 +1283,21 @@ document.addEventListener('change', e => { if (e.target && e.target.id === 'ovr-
   flyEl.addEventListener('mouseleave', () => flyEl.classList.add('hidden'));
   document.addEventListener('click', e => { if (e.target.closest('#railexp')) flyEl.classList.toggle('hidden'); });
 }
+// Theme: auto (follow system) -> dark -> light, stored per browser.
+function applyTheme(){
+  let t = null; try { t = localStorage.getItem('ui-theme'); } catch {}
+  if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+  const b = document.getElementById('theme-btn');
+  if (b) b.textContent = t === 'dark' ? '🌙 dark' : t === 'light' ? '☀ light' : '◐ auto';
+}
+document.getElementById('theme-btn').onclick = () => {
+  let t = null; try { t = localStorage.getItem('ui-theme'); } catch {}
+  const next = t === 'dark' ? 'light' : t === 'light' ? null : 'dark';
+  try { if (next) localStorage.setItem('ui-theme', next); else localStorage.removeItem('ui-theme'); } catch {}
+  applyTheme();
+};
+applyTheme();
 // Auto-scale: the console was designed around ~1500px wide; larger monitors
 // zoom the whole UI up proportionally (to 1.75x on 4K). A−/auto/A+ in the
 // header stores a personal preference in this browser.
