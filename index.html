@@ -1398,6 +1398,32 @@ async function doMatchOrder(btn){
   alert(changed ? `Parent gallery copied into ${changed} variant${changed === 1 ? '' : 's'} — parent's photos first in the parent's order, each variant's extra shots after (9-photo cap).`
                 : 'Every variant already carries the parent gallery in the parent order.');
 }
+// Amazon only ingests JPEG/PNG/TIFF/GIF and needs >=1000px on the longest side
+// for zoom - anything else (AVIF, WebP, tiny web-grabs) is dropped SILENTLY.
+// Every upload is therefore normalized in the browser: decoded (the browser
+// reads AVIF/WebP natively), upscaled to 1000px if small, re-encoded as JPEG.
+async function normalizeImage(f){
+  try {
+    const bmp = await createImageBitmap(f);
+    const long = Math.max(bmp.width, bmp.height);
+    const scale = long < 1000 ? 1000 / long : 1;
+    const isJpeg = f.type === 'image/jpeg';
+    if (isJpeg && scale === 1) { bmp.close(); return { blob: f, note: '' } };
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+    const cx = cv.getContext('2d');
+    cx.imageSmoothingQuality = 'high';
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);   // flatten alpha to white
+    cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    bmp.close();
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+    if (!blob) return { blob: f, note: '' };
+    const notes = [];
+    if (!isJpeg) notes.push('converted to JPEG');
+    if (scale > 1) notes.push(`sized up to ${Math.max(cv.width, cv.height)}px`);
+    return { blob, note: notes.join(', ') };
+  } catch { return { blob: f, note: '' }; }   // undecodable: upload as-is, validate flags it
+}
 async function doUpload(files){
   const d = DATA[cur];
   const kid = currentChild(d);
@@ -1405,8 +1431,11 @@ async function doUpload(files){
   const added = [];
   for (const f of files){
     if (stat) stat.textContent = `uploading ${f.name}…`;
-    const path = `uploads/${d.id}/${Date.now()}_${f.name.replace(/[^A-Za-z0-9._-]/g,'_')}`;
-    const { error } = await sb.storage.from('product-images').upload(path, f);
+    const { blob, note } = await normalizeImage(f);
+    if (note && stat) stat.textContent = `${f.name}: ${note}…`;
+    const base = f.name.replace(/[^A-Za-z0-9._-]/g,'_').replace(/\.[A-Za-z0-9]+$/, '');
+    const path = `uploads/${d.id}/${Date.now()}_${base}.jpg`;
+    const { error } = await sb.storage.from('product-images').upload(path, blob, { contentType: 'image/jpeg' });
     if (error){ if (stat) stat.textContent = 'upload failed: ' + error.message; return; }
     added.push(`${SUPABASE_URL}/storage/v1/object/public/product-images/${path}`);
   }
