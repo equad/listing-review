@@ -128,6 +128,9 @@ main{flex:1;overflow:hidden;padding:12px 22px 0;display:flex;flex-direction:colu
 .abt{font-size:14px;font-weight:700;margin:14px 0 0}
 .mock ul{margin:8px 0 0;padding-left:18px}
 .mock li{font-size:13.5px;line-height:1.45;margin-bottom:7px}
+.mock li.over{opacity:.5;text-decoration:line-through}
+.mock li.parentonly{border-left:3px solid var(--warn,#c98a00);padding-left:6px}
+.bltnote{font-size:11px;color:var(--warn,#c98a00);text-decoration:none;display:inline-block;margin-left:4px}
 .buybox{border:1px solid var(--az-line);border-radius:8px;padding:16px;height:fit-content}
 .price{font-size:25px;color:var(--az-price)}
 .price sup{font-size:13px}
@@ -388,7 +391,8 @@ const show = id => {
 
 let session = null, email = null;
 let campaigns = [], campStats = {}, camp = null, DATA = [], events = [];
-let cur = 0, imgSel = 0, childSel = 0, channel = null, rfEdit = null;
+// childSel -1 = parent view (default when opening an item); 0.. = variant index
+let cur = 0, imgSel = 0, childSel = -1, channel = null, rfEdit = null;
 let titleEdit = false, bulletEdit = -1, descEdit = false;
 
 // ---------- auth ----------
@@ -608,7 +612,7 @@ async function openCampaign(key, jumpToItemId = null){
   ]);
   DATA = full.data; events = evs;
   applyPatches();
-  cur = 0; imgSel = 0; childSel = 0; clearDrafts();
+  cur = 0; imgSel = 0; childSel = -1; clearDrafts();
   if (jumpToItemId){ const ji = DATA.findIndex(d => d.id === jumpToItemId); if (ji >= 0) cur = ji; }
   document.getElementById('hdr-title').textContent = camp.title;
   document.getElementById('hdr-sub').textContent = (camp.sub || '') + ' · live console';
@@ -624,6 +628,19 @@ async function openCampaign(key, jumpToItemId = null){
       el.style.color = st === 'SUBSCRIBED' ? 'var(--ok)' : 'var(--mut)';
     });
 }
+// Replace the shared (top-level) bullet set with `next`: existing slots keep
+// their role/scope, slots beyond the new list are DROPPED, new ones appended
+// (role = the "Label:" prefix), max 5. Child + reserved bullets untouched.
+// Overwriting in place (the old way) could never delete a bullet.
+function setTopBullets(all, next){
+  const list = all || [];
+  const tops = list.filter(b => !b.child_id && b.role !== 'reserved');
+  const texts = (next || []).filter(t => typeof t === 'string' && t.trim()).slice(0, 5);
+  const fresh = texts.map((t, i) => tops[i]
+    ? { ...tops[i], idx: i + 1, content: t }
+    : { child_id: null, idx: i + 1, scope: 'parent_shared', role: (t.split(':')[0] || '').trim().slice(0, 40) || ('Bullet ' + (i + 1)), content: t });
+  return [...fresh, ...list.filter(b => b.child_id || b.role === 'reserved')];
+}
 function applyOne(ev){
   if (ev.kind === 'revision' && ev.patch){
     const d = DATA.find(x => x.id === ev.item_id);
@@ -634,10 +651,7 @@ function applyOne(ev){
     if (p.description !== undefined) d.description = p.description;
     if (p.price !== undefined) d.price = p.price;
     if (p.keywords !== undefined && typeof p.keywords === 'string') d.keywords = [{kind:'backend_search_terms', content: p.keywords}];
-    if (Array.isArray(p.bullets)){
-      const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved');
-      p.bullets.forEach((t,i) => { if (typeof t === 'string' && tops[i]) tops[i].content = t; });
-    }
+    if (Array.isArray(p.bullets)) d.bullets = setTopBullets(d.bullets, p.bullets);
     if (p.child_bullet !== undefined && ev.child_id){
       const cb = (d.bullets||[]).find(b => b.child_id === ev.child_id);
       if (cb) cb.content = p.child_bullet;
@@ -661,7 +675,7 @@ function applyOne(ev){
       if (keep.length !== DATA.length){
         DATA.length = 0; DATA.push(...keep);
         const ni = DATA.findIndex(x => x.id === curId);
-        cur = ni >= 0 ? ni : 0; childSel = 0;
+        cur = ni >= 0 ? ni : 0; childSel = -1;
       }
     }
   }
@@ -793,6 +807,22 @@ function bulletsFor(d){
   if (!kid) return shared;
   const kidBul = (d.bullets||[]).filter(b => b.child_id && b.child_id === kid.id);
   return [...kidBul, ...shared.filter(b=>b.scope==='parent_shared')];
+}
+// Amazon takes 5 bullets per SKU. A variant is sent its own bullet + the first
+// 4 shared ones (launcher: [...kidBul, ...sharedOnly].slice(0,5)); the parent
+// gets the 5 shared. Flag anything past that so nobody edits a bullet Amazon
+// never sees.
+const BULLET_CAP = 5;
+function bulletCls(d, bo, i){
+  if (i >= BULLET_CAP) return 'over';
+  if (d.is_family && !currentChild(d) && !bo.child_id && i >= BULLET_CAP - 1) return 'parentonly';
+  return '';
+}
+function bulletNote(d, bo, i){
+  const c = bulletCls(d, bo, i);
+  if (c === 'over') return ` <span class="bltnote">not sent - Amazon max ${BULLET_CAP} (variant bullet + first ${BULLET_CAP-1} shared)</span>`;
+  if (c === 'parentonly') return ` <span class="bltnote">parent only - variants have room for ${BULLET_CAP-1} shared bullets</span>`;
+  return '';
 }
 function threadHTML(d){
   const evs = itemEvents(d.id).filter(e =>
@@ -1010,7 +1040,7 @@ function render(){
         <div class="abt">About this item</div>
         <ul>${bulletsFor(d).map((bo,i)=> bulletEdit===i
           ? `<li><div class="vedit blt-edit"><input type="text" id="blt-in" value="${esc(bo.content)}" maxlength="220"><button class="bltok">✓</button><button class="bltx">✕</button></div></li>`
-          : `<li>${esc(bo.content)} <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button></li>`).join('')}</ul>
+          : `<li class="${bulletCls(d, bo, i)}">${esc(bo.content)} <button class="rfedit bltedit" data-bi="${i}" title="Edit bullet">✎</button>${bo.child_id ? '' : `<button class="rfedit bltdel" data-bi="${i}" title="Delete this shared bullet (all variants)">✕</button>`}${bulletNote(d, bo, i)}</li>`).join('')}</ul>
         ${bulletEdit===-1 && !titleEdit ? `<div class="rfhint">Click ✎ on the title or a bullet to edit it directly.</div>` : ''}
       </div>
     </div>
@@ -1124,7 +1154,7 @@ function render(){
   const dok = document.querySelector('.descok'); if (dok) dok.onclick = commitDesc;
   const dx = document.querySelector('.descx'); if (dx) dx.onclick = () => { descEdit = false; render(); };
   const din = document.getElementById('desc-in'); if (din) din.onkeydown = e => { if (e.key === 'Escape'){ descEdit = false; render(); } };
-  document.querySelectorAll('.rfedit:not(.descedit):not(.ttledit):not(.bltedit)').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.rfedit:not(.descedit):not(.ttledit):not(.bltedit):not(.bltdel)').forEach(b => b.onclick = () => {
     rfEdit = b.dataset.k; render();
     const el = document.getElementById('rf-in'); if (el){ el.focus(); el.select(); }
   });
@@ -1162,6 +1192,7 @@ function render(){
     bulletEdit = +b.dataset.bi; render();
     const el = document.getElementById('blt-in'); if (el){ el.focus(); el.select(); }
   });
+  document.querySelectorAll('.bltdel').forEach(b => b.onclick = () => deleteBullet(+b.dataset.bi));
   const bltOk = document.querySelector('.bltok');
   if (bltOk) bltOk.onclick = commitBullet;
   const bltX = document.querySelector('.bltx');
@@ -1232,9 +1263,20 @@ function commitBullet(){
     edit({ bullets: tops.map(b => b.content) });
   }
 }
+// Drop one SHARED bullet (index into bulletsFor) for the whole family. Child
+// bullets are not deletable - every variant keeps its own first bullet.
+function deleteBullet(i){
+  const d = DATA[cur]; if (!d) return;
+  const bo = bulletsFor(d)[i];
+  if (!bo || bo.child_id) return;
+  const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved').filter(b => b !== bo);
+  d.bullets = setTopBullets(d.bullets, tops.map(b => b.content));
+  bulletEdit = -1; render();
+  edit({ bullets: tops.map(b => b.content) });
+}
 function bind(id, fn){ const el = document.getElementById(id); if (el) el.onclick = fn; }
 function clearDrafts(){ for (const id of ['note','chat']){ const el = document.getElementById(id); if (el) el.value = ''; } }
-function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = 0; rfEdit = null; titleEdit = false; bulletEdit = -1; descEdit = false; clearDrafts(); render();
+function go(i){ if (i<0 || i>=DATA.length) return; cur = i; imgSel = 0; childSel = -1; rfEdit = null; titleEdit = false; bulletEdit = -1; descEdit = false; clearDrafts(); render();
   const sp = document.querySelector('.scrollpane'); if (sp) sp.scrollTop = 0; }
 
 // ---------- actions ----------
