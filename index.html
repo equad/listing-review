@@ -162,6 +162,11 @@ textarea{min-height:70px;resize:vertical}
 .msg.sys{align-self:center;background:none;color:var(--mut);font-size:12px;padding:2px}
 .msg.ask{align-self:flex-start;max-width:92%;background:var(--chip-warn);border:1.5px solid var(--warn);border-bottom-left-radius:4px}
 .msg.ask .who{color:var(--warn);font-weight:700;opacity:1}
+.msg.bl{max-width:92%;border:1.5px solid var(--line);font-weight:500}
+.msg.bl.ok{border-color:var(--ok);background:var(--chip-ok)}
+.msg.bl.bad{border-color:var(--bad);background:var(--chip-bad)}
+.msg.bl.wait{border-color:var(--warn);background:var(--chip-warn)}
+.msg.bl .who{font-weight:700;opacity:1}
 .msg.ask b{display:block;margin-bottom:6px}
 .askopt{display:block;width:100%;text-align:left;margin:4px 0;padding:7px 10px;border:1px solid var(--warn);border-radius:8px;background:var(--mono-bg);color:inherit;cursor:pointer;font-size:13px;font-weight:600}
 .askopt:hover{filter:brightness(.96)}
@@ -857,6 +862,12 @@ function threadHTML(d){
       return `<div class="msg ask"><div class="who">❓ Decision needed</div><b>${esc(a.title||'')}</b>` +
         (a.options||[]).map((o,i) => `<button class="askopt" data-ev="${esc(String(e.id))}" data-i="${i}">${i+1}. ${esc(o.label||'')}</button>`).join('') +
         `<div class="sub">Click an option, or reply with its number in the chat.</div></div>`;
+    }
+    // The launcher's plain-English verdict after a validation/push report.
+    const bl = /^(✅|🛑|⏳) Bottom line:/.exec(e.text||'');
+    if (e.kind==='chat' && bl){
+      const cls = bl[1]==='✅' ? 'ok' : bl[1]==='🛑' ? 'bad' : 'wait';
+      return `<div class="msg ai bl ${cls}"><div class="who">Bottom line</div>${esc((e.text||'').replace(/^.. ?Bottom line: /,''))}</div>`;
     }
     return `<div class="msg ai"><div class="who">AI</div>${esc(e.text||'')}</div>`;
   }).join('') + '</div>';
