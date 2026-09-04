@@ -129,8 +129,9 @@ main{flex:1;overflow:hidden;padding:12px 22px 0;display:flex;flex-direction:colu
 .mock ul{margin:8px 0 0;padding-left:18px}
 .mock li{font-size:13.5px;line-height:1.45;margin-bottom:7px}
 .mock li.over{opacity:.5;text-decoration:line-through}
-.mock li.parentonly{border-left:3px solid var(--warn,#c98a00);padding-left:6px}
-.bltnote{font-size:11px;color:var(--warn,#c98a00);text-decoration:none;display:inline-block;margin-left:4px}
+.mock li.summary{border-left:3px solid var(--accent);padding-left:6px}
+.bltnote{font-size:11px;color:var(--muted,#777);text-decoration:none;display:inline-block;margin-left:4px}
+.mock li.over .bltnote{color:var(--warn)}
 .buybox{border:1px solid var(--az-line);border-radius:8px;padding:16px;height:fit-content}
 .price{font-size:25px;color:var(--az-price)}
 .price sup{font-size:13px}
@@ -629,16 +630,20 @@ async function openCampaign(key, jumpToItemId = null){
     });
 }
 // Replace the shared (top-level) bullet set with `next`: existing slots keep
-// their role/scope, slots beyond the new list are DROPPED, new ones appended
+// their role, slots beyond the new list are DROPPED, new ones appended
 // (role = the "Label:" prefix), max 5. Child + reserved bullets untouched.
 // Overwriting in place (the old way) could never delete a bullet.
-function setTopBullets(all, next){
+// Family scopes: slots 1-4 are parent_shared (every variant gets them after
+// its own bullet); slot 5 is parent_summary - sent on the parent only, it
+// sums up the variant range. Non-family: all parent_shared.
+function setTopBullets(all, next, isFamily){
   const list = all || [];
   const tops = list.filter(b => !b.child_id && b.role !== 'reserved');
   const texts = (next || []).filter(t => typeof t === 'string' && t.trim()).slice(0, 5);
+  const scopeAt = i => (isFamily && i === 4) ? 'parent_summary' : 'parent_shared';
   const fresh = texts.map((t, i) => tops[i]
-    ? { ...tops[i], idx: i + 1, content: t }
-    : { child_id: null, idx: i + 1, scope: 'parent_shared', role: (t.split(':')[0] || '').trim().slice(0, 40) || ('Bullet ' + (i + 1)), content: t });
+    ? { ...tops[i], idx: i + 1, scope: scopeAt(i), content: t }
+    : { child_id: null, idx: i + 1, scope: scopeAt(i), role: (t.split(':')[0] || '').trim().slice(0, 40) || ('Bullet ' + (i + 1)), content: t });
   return [...fresh, ...list.filter(b => b.child_id || b.role === 'reserved')];
 }
 function applyOne(ev){
@@ -651,7 +656,7 @@ function applyOne(ev){
     if (p.description !== undefined) d.description = p.description;
     if (p.price !== undefined) d.price = p.price;
     if (p.keywords !== undefined && typeof p.keywords === 'string') d.keywords = [{kind:'backend_search_terms', content: p.keywords}];
-    if (Array.isArray(p.bullets)) d.bullets = setTopBullets(d.bullets, p.bullets);
+    if (Array.isArray(p.bullets)) d.bullets = setTopBullets(d.bullets, p.bullets, !!d.is_family);
     if (p.child_bullet !== undefined && ev.child_id){
       const cb = (d.bullets||[]).find(b => b.child_id === ev.child_id);
       if (cb) cb.content = p.child_bullet;
@@ -806,22 +811,22 @@ function bulletsFor(d){
   const kid = currentChild(d);
   if (!kid) return shared;
   const kidBul = (d.bullets||[]).filter(b => b.child_id && b.child_id === kid.id);
-  return [...kidBul, ...shared.filter(b=>b.scope==='parent_shared')];
+  return [...kidBul, ...shared.filter(b=>b.scope==='parent_shared').slice(0, BULLET_CAP - 1)];
 }
 // Amazon takes 5 bullets per SKU. A variant is sent its own bullet + the first
 // 4 shared ones (launcher: [...kidBul, ...sharedOnly].slice(0,5)); the parent
-// gets the 5 shared. Flag anything past that so nobody edits a bullet Amazon
-// never sees.
+// gets all 5 top-level ones, the 5th being the variant-range summary. Flag
+// anything past the cap so nobody edits a bullet Amazon never sees.
 const BULLET_CAP = 5;
 function bulletCls(d, bo, i){
   if (i >= BULLET_CAP) return 'over';
-  if (d.is_family && !currentChild(d) && !bo.child_id && i >= BULLET_CAP - 1) return 'parentonly';
+  if (d.is_family && !currentChild(d) && !bo.child_id && i === BULLET_CAP - 1) return 'summary';
   return '';
 }
 function bulletNote(d, bo, i){
   const c = bulletCls(d, bo, i);
-  if (c === 'over') return ` <span class="bltnote">not sent - Amazon max ${BULLET_CAP} (variant bullet + first ${BULLET_CAP-1} shared)</span>`;
-  if (c === 'parentonly') return ` <span class="bltnote">parent only - variants have room for ${BULLET_CAP-1} shared bullets</span>`;
+  if (c === 'over') return ` <span class="bltnote">not sent - Amazon max ${BULLET_CAP}</span>`;
+  if (c === 'summary') return ` <span class="bltnote">parent only - sums up the variants; each variant gets its own bullet + bullets 1-${BULLET_CAP-1}</span>`;
   return '';
 }
 function threadHTML(d){
@@ -1270,7 +1275,7 @@ function deleteBullet(i){
   const bo = bulletsFor(d)[i];
   if (!bo || bo.child_id) return;
   const tops = (d.bullets||[]).filter(b => !b.child_id && b.role !== 'reserved').filter(b => b !== bo);
-  d.bullets = setTopBullets(d.bullets, tops.map(b => b.content));
+  d.bullets = setTopBullets(d.bullets, tops.map(b => b.content), !!d.is_family);
   bulletEdit = -1; render();
   edit({ bullets: tops.map(b => b.content) });
 }
